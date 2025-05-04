@@ -8,8 +8,8 @@ Website giới thiệu sản phẩm thương mại điện tử, với giao di�
 |------------|-----------|
 | Frontend   | Vue.js 3, BootstrapVue, JavaScript |
 | Backend    | Golang (Gin Framework) |
-| Database   | MongoDB |
-| Đồng bộ    | Golang (sync từ MSSQL → MongoDB định kỳ) |
+| Database   | Postgresql |
+| Đồng bộ    | Golang (sync từ MSSQL → Postgresql định kỳ) |
 | SEO        | Có sitemap, meta tags, structured data (schema.org) |
 
 ---
@@ -56,7 +56,7 @@ item/
 │   │   ├── views/
 │   │   ├── router/
 │   │   └── assets/
-├── mongo/                 # MongoDB docker volume (nếu dùng)
+├── Postgresql/            # Postgresql docker volume (nếu dùng)
 ├── mssql/                 # MSSQL docker config hoặc dump
 ├── docker-compose.yml
 ├── .env
@@ -66,7 +66,7 @@ item/
 
 ## 🔄 Đồng bộ dữ liệu
 
-- Sử dụng Golang script kết nối MSSQL → truy vấn toàn bộ bảng sản phẩm → lưu về MongoDB.
+- Sử dụng Golang script kết nối Postgresql → truy vấn toàn bộ bảng sản phẩm → lưu về Postgresql.
 - Lên lịch đồng bộ định kỳ (cronjob hoặc scheduler).
 - MSSQL driver: `github.com/denisenkom/go-mssqldb`
 
@@ -107,7 +107,7 @@ item/
 
 ---
 
-## 🧪 TODO (dành cho AI IDE Agent hoặc dev mới)
+## 🧪 TODO 
 
 - [ ] Khởi tạo project Golang (Gin)
 - [ ] Tạo mô hình sản phẩm trong MongoDB
