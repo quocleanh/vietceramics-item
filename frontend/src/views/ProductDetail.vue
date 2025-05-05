@@ -26,10 +26,6 @@
 
             <img :src="currentImage" class="img-fluid main-img" :alt="product.name"
               @click="openGallery(currentImageIndex)">
-            <span class="zoom-icon" @click="openGallery(currentImageIndex)">
-              <img src="https://cdn-icons-png.flaticon.com/128/8535/8535541.png" width="20" height="20" alt="Zoom Icon"
-                class="zoom-icon-img">
-            </span>
 
             <!-- Main image navigation buttons -->
             <button v-if="allImages.length > 1" class="nav-btn prev-btn" @click.stop="navigateImage('prev')"
@@ -535,7 +531,7 @@ export default {
 
 .main-image {
   width: 100%;
-  height: 400px;
+  height: 600px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -544,66 +540,99 @@ export default {
   overflow: hidden;
   position: relative;
   box-shadow: 0 2px 12px rgba(151, 27, 30, 0.08);
+  cursor: zoom-in;
 }
 
 .main-img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  object-position: center !important;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
   border-radius: 12px;
-  transition: all 0.3s ease;
-  background: #f8f9fa;
-  display: block;
+  transition: transform 0.3s ease;
 }
 
-.main-image:hover .main-img {
+.main-img:hover {
   transform: scale(1.02);
-  box-shadow: 0 6px 24px rgba(151, 27, 30, 0.13);
 }
 
+/* Xóa nút zoom */
 .zoom-icon {
+  display: none;
+}
+
+/* Thêm hiệu ứng hover cho main image */
+.main-image:hover::after {
+  content: '';
   position: absolute;
-  bottom: 18px;
-  right: 18px;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 50%;
-  padding: 8px 10px;
-  font-size: 1.2rem;
-  color: #971b1e;
-  box-shadow: 0 2px 8px rgba(151, 27, 30, 0.10);
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.zoom-icon:hover {
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 2px 12px rgba(151, 27, 30, 0.15);
-  transform: scale(1.05);
+.main-image:hover::after {
+  opacity: 1;
 }
 
-.zoom-icon-img {
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
+/* Thêm tooltip khi hover */
+.main-image::before {
+  content: 'Click để xem ảnh lớn';
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.main-image:hover::before {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .main-image::before {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
 }
 
 .thumbnails-wrapper {
-  position: relative;
-  padding: 0 30px;
-  margin-top: 10px;
+  position: absolute;
+  bottom: 117px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0;
+  margin: 0;
+  height: 100px;
+  width: 90%; 
 }
 
 .thumbnails {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  white-space: nowrap;
-  padding-bottom: 4px;
-  scroll-behavior: smooth;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+     display: flex
+;
+    gap: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    height: 100%;
+    align-items: center;
+    flex-direction: row;
+    justify-content: flex-start;
 }
 
 .thumbnails::-webkit-scrollbar {
@@ -616,18 +645,19 @@ export default {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   display: inline-block;
   flex-shrink: 0;
   background: #f8f9fa;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .thumbnail-item.active,
 .thumbnail-item:hover {
   border: 2px solid #971b1e;
-  box-shadow: 0 2px 8px rgba(151, 27, 30, 0.10);
+  box-shadow: 0 4px 12px rgba(151, 27, 30, 0.2);
   transform: translateY(-2px);
 }
 
@@ -785,78 +815,36 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .product-detail {
-    padding: 1.2rem 0.2rem;
+  .main-image {
+    height: 400px;
   }
 
-  .main-image {
-    height: 240px;
+  .thumbnails-wrapper {
+    bottom: 15px;
+    height: 80px;
+    width: 95%;
   }
 
   .thumbnail-item {
-    width: 48px;
-    height: 48px;
-  }
-
-  .product-name {
-    font-size: 1.3rem;
-  }
-
-  .product-short-desc,
-  .long-description {
-    font-size: 0.98rem;
-    padding: 0.7rem 0.7rem;
-  }
-
-  .section-title {
-    font-size: 1.08rem;
-  }
-
-  .zoom-icon {
-    padding: 6px 8px;
-    font-size: 1rem;
-  }
-
-  .zoom-icon-img {
-    width: 16px;
-    height: 16px;
-  }
-
-  :deep(.vel-btn) {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
-  }
-
-  .current-price {
-    font-size: 1.8rem;
-  }
-
-  .original-price {
-    font-size: 1.2rem;
-  }
-
-  .price-note {
-    font-size: 0.85rem;
+    width: 60px;
+    height: 60px;
   }
 }
 
 @media (max-width: 576px) {
   .main-image {
-    height: 100vw;
-    max-height: 100vw;
-    min-height: 100vw;
-    aspect-ratio: 1 / 1;
+    height: 300px;
   }
 
-  .main-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-    border-radius: 12px;
-    background: #f8f9fa;
-    display: block;
+  .thumbnails-wrapper {
+    bottom: 10px;
+    height: 70px;
+    width: 95%;
+  }
+
+  .thumbnail-item {
+    width: 50px;
+    height: 50px;
   }
 }
 
@@ -899,49 +887,7 @@ export default {
 
 /* Thumbnail navigation buttons */
 .thumb-nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.95);
-  border: none;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #971b1e;
-  z-index: 2;
-  box-shadow: 0 2px 8px rgba(151, 27, 30, 0.10);
-}
-
-.thumb-nav-btn:hover {
-  background: #fff;
-  box-shadow: 0 2px 12px rgba(151, 27, 30, 0.15);
-}
-
-.thumb-nav-btn.left {
-  left: 0;
-}
-
-.thumb-nav-btn.right {
-  right: 0;
-}
-
-@media (max-width: 768px) {
-  .nav-btn {
-    width: 35px;
-    height: 35px;
-    font-size: 0.9rem;
-  }
-
-  .thumb-nav-btn {
-    width: 25px;
-    height: 25px;
-    font-size: 0.8rem;
-  }
+  display: none;
 }
 
 /* Fancybox custom styles */
@@ -993,14 +939,6 @@ export default {
 
 :deep(.fancybox__thumbs .carousel__slide.is-nav-selected::after) {
   border: 2px solid #971b1e;
-}
-
-@media (max-width: 768px) {
-  :deep(.fancybox__button) {
-    width: 35px;
-    height: 35px;
-    font-size: 1rem;
-  }
 }
 
 .image-type-overlay {
