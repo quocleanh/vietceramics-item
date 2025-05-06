@@ -1,5 +1,14 @@
 <template>
-  <div class="product-detail container py-5" v-if="product">
+  <div class="product-detail py-5" v-if="product">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb-nav mb-4">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+        <li class="breadcrumb-item"><a href="/catalog">Danh mục</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+      </ol>
+    </nav>
+
     <div class="row">
       <!-- Gallery -->
       <div class="col-md-6 mb-4">
