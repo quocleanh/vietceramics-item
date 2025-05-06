@@ -7,25 +7,36 @@
           <div class="main-image mb-3 position-relative">
             <!-- Image Type Selection Overlay -->
             <div class="image-type-overlay">
-              <button class="type-btn" :class="{ active: currentImageType === 'product' }"
-                @click="jumpToImageType('product')">
-                <i class="fi fi-br-box"></i>
-                <span>Hình sản phẩm</span>
-              </button>
-              <button class="type-btn" :class="{ active: currentImageType === 'perspective' }"
-                @click="jumpToImageType('perspective')">
-                <i class="fi fi-br-layout-fluid"></i>
-                <span>Hình phối cảnh</span>
-              </button>
-              <button class="type-btn" :class="{ active: currentImageType === 'real' }"
-                @click="jumpToImageType('real')">
-                <i class="fi fi-br-camera"></i>
-                <span>Hình thực tế</span>
-              </button>
+              <div class="image-type-buttons">
+                <button class="type-btn" :class="{ active: currentImageType === 'product' }"
+                  @click.stop="jumpToImageType('product')">
+                  <i class="fi fi-br-box"></i>
+                  <span>Hình sản phẩm</span>
+                </button>
+                <button class="type-btn" :class="{ active: currentImageType === 'perspective' }"
+                  @click.stop="jumpToImageType('perspective')">
+                  <i class="fi fi-br-layout-fluid"></i>
+                  <span>Hình phối cảnh</span>
+                </button>
+                <button class="type-btn" :class="{ active: currentImageType === 'real' }"
+                  @click.stop="jumpToImageType('real')">
+                  <i class="fi fi-br-camera"></i>
+                  <span>Hình thực tế</span>
+                </button>
+              </div>
             </div>
 
             <img :src="currentImage" class="img-fluid main-img" :alt="product.name"
-              @click="openGallery(currentImageIndex)">
+              @click="openCustomModal"
+              @mousemove="handleImageHover"
+              @mouseenter="isHovering = true"
+              @mouseleave="isHovering = false"
+              :style="getHoverStyle()">
+            
+            <div class="zoom-indicator">
+              <i class="fi fi-br-zoom-in"></i>
+              <span>Click để phóng to</span>
+            </div>
 
             <!-- Main image navigation buttons -->
             <button v-if="allImages.length > 1" class="nav-btn prev-btn" @click.stop="navigateImage('prev')"
@@ -36,22 +47,17 @@
               :disabled="currentImageIndex === allImages.length - 1">
               <i class="fi fi-br-angle-right"></i>
             </button>
-          </div>
-
-          <div class="thumbnails-wrapper position-relative">
-            <button v-if="showLeftArrow" class="thumb-nav-btn left" @click="scrollThumbnails('left')">
-              <i class="fi fi-br-angle-left"></i>
-            </button>
-            <div class="thumbnails d-flex justify-content-start gap-2" ref="thumbnails" @scroll="updateThumbArrows">
-              <div v-for="(image, index) in allImages" :key="index" class="thumbnail-item"
-                :class="{ active: index === currentImageIndex }" @click="selectThumbnail(index, $event)"
-                :ref="index === currentImageIndex ? 'activeThumb' : null">
-                <img :src="image" class="img-fluid thumb-img" :alt="product.name">
+            
+            <!-- Embedded thumbnails -->
+            <div class="thumbnails-wrapper">
+              <div class="thumbnails d-flex justify-content-start gap-2" ref="thumbnails" @scroll="updateThumbArrows">
+                <div v-for="(image, index) in allImages" :key="index" class="thumbnail-item"
+                  :class="{ active: index === currentImageIndex }" @click.stop="selectThumbnail(index, $event)"
+                  :ref="index === currentImageIndex ? 'activeThumb' : null">
+                  <img :src="image" class="img-fluid thumb-img" :alt="product.name">
+                </div>
               </div>
             </div>
-            <button v-if="showRightArrow" class="thumb-nav-btn right" @click="scrollThumbnails('right')">
-              <i class="fi fi-br-angle-right"></i>
-            </button>
           </div>
         </div>
       </div>
@@ -229,13 +235,47 @@
       </div>
     </div>
 
-    <!-- Fancybox Gallery -->
-    <div class="gallery" ref="gallery">
-      <a v-for="(image, index) in allImages" :key="index" :data-fancybox="'gallery'" :data-src="image"
-        :data-caption="product.name" :data-download-src="image">
-        <img :src="image" :alt="product.name" style="display: none;" />
-      </a>
-    </div>
+    <!-- Custom Zoom Modal -->
+    <transition name="fade">
+      <div v-if="showZoomModal" class="custom-zoom-modal" @click="closeZoomModal">
+        <div class="custom-zoom-container" @click.stop>
+          <div class="custom-toolbar">
+            <button class="toolbar-btn" @click="zoomIn"><i class="fi fi-br-zoom-in"></i></button>
+            <button class="toolbar-btn" @click="zoomOut"><i class="fi fi-br-zoom-out"></i></button>
+            <button class="toolbar-btn" @click="resetZoom"><i class="fi fi-br-undo"></i></button>
+            <div class="toolbar-spacer"></div>
+            <button class="toolbar-btn" @click="downloadImage"><i class="fi fi-br-download"></i></button>
+            <button class="toolbar-btn" @click="closeZoomModal"><i class="fi fi-br-cross"></i></button>
+          </div>
+          
+          <div class="zoom-image-wrapper" 
+            @mousedown="startDrag" 
+            @mousemove="onDrag" 
+            @mouseup="stopDrag"
+            @mouseleave="stopDrag"
+            @touchstart="startDrag" 
+            @touchmove="onDrag" 
+            @touchend="stopDrag">
+            <img :src="zoomedImage" alt="Zoomed Image" class="custom-zoomed-img" 
+              :style="{ 
+                transform: `scale(${zoomLevel}) translate(${dragX}px, ${dragY}px)` 
+              }"
+              @wheel="handleZoomWheel">
+          </div>
+          
+          <div class="custom-thumbnails">
+            <div class="thumbnails-container">
+              <div v-for="(image, index) in allImages" :key="index" 
+                class="zoom-thumbnail-item" 
+                :class="{ active: zoomedImage === image }"
+                @click="changeZoomedImage(image)">
+                <img :src="image" class="zoom-thumb-img" :alt="product.name">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
   <!-- Skeleton Loading -->
   <div v-else-if="loading" class="skeleton-wrapper">
@@ -306,7 +346,20 @@ export default {
       images: [],
       images_perspective: [],
       images_real: [],
-      error: null
+      error: null,
+      showZoomModal: false,
+      zoomedImage: '',
+      zoomLevel: 1,
+      dragX: 0,
+      dragY: 0,
+      isDragging: false,
+      startX: 0,
+      startY: 0,
+      lastX: 0,
+      lastY: 0,
+      hoverX: 0,
+      hoverY: 0,
+      isHovering: false
     };
   },
   computed: {
@@ -433,24 +486,21 @@ export default {
         const activeThumb = this.$refs.activeThumb;
         const container = this.$refs.thumbnails;
         if (activeThumb && activeThumb[0] && container) {
-          // ... logic cuộn
+          const thumbLeft = activeThumb[0].offsetLeft;
+          const thumbWidth = activeThumb[0].offsetWidth;
+          const containerWidth = container.clientWidth;
+          const scrollLeft = container.scrollLeft;
+          
+          // If the active thumbnail is not visible or partially visible, scroll it into view
+          if (thumbLeft < scrollLeft || (thumbLeft + thumbWidth) > (scrollLeft + containerWidth)) {
+            // Center the thumbnail in the container
+            container.scrollTo({
+              left: thumbLeft - (containerWidth / 2) + (thumbWidth / 2),
+              behavior: 'smooth'
+            });
+          }
         }
       });
-    },
-
-    // Mở gallery xem ảnh full màn hình
-    openGallery(index) {
-      Fancybox.show(
-        this.allImages.map(image => ({
-          src: image,
-          caption: this.product.name,
-          downloadSrc: image
-        })),
-        {
-          startIndex: index,
-          // ... cấu hình gallery
-        }
-      );
     },
 
     // Chuyển đổi giữa các loại hình ảnh
@@ -506,6 +556,200 @@ export default {
     goToLogin() {
       localStorage.setItem('redirect_after_login', this.$route.fullPath);
       this.$router.push('/login');
+    },
+    
+    // Navigate image with previous/next buttons
+    navigateImage(direction) {
+      if (direction === 'prev' && this.currentImageIndex > 0) {
+        this.currentImageIndex--;
+      } else if (direction === 'next' && this.currentImageIndex < this.allImages.length - 1) {
+        this.currentImageIndex++;
+      }
+      this.scrollActiveThumbIntoView();
+    },
+
+    // Update thumbnail arrows visibility
+    updateThumbArrows() {
+      if (!this.$refs.thumbnails) return;
+      
+      const container = this.$refs.thumbnails;
+      this.showLeftArrow = container.scrollLeft > 0;
+      this.showRightArrow = container.scrollLeft < (container.scrollWidth - container.clientWidth - 5);
+    },
+    
+    // Scroll thumbnails
+    scrollThumbnails(direction) {
+      if (!this.$refs.thumbnails) return;
+      
+      const container = this.$refs.thumbnails;
+      const scrollAmount = direction === 'left' ? -200 : 200;
+      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    },
+
+    // Handle keyboard navigation
+    handleKeyNavigation(event) {
+      if (event.key === 'ArrowLeft') {
+        this.navigateImage('prev');
+      } else if (event.key === 'ArrowRight') {
+        this.navigateImage('next');
+      }
+    },
+
+    openCustomModal() {
+      try {
+        // Reset hover state
+        this.isHovering = false;
+        
+        // Sử dụng một cách tiếp cận khác, sử dụng Fancybox nhưng với API đơn giản hơn
+        const imageToShow = this.currentImage;
+        
+        // Nếu muốn sử dụng modal tự tạo thay vì Fancybox
+        if (true) {
+          this.zoomedImage = imageToShow;
+          this.showZoomModal = true;
+          
+          // Reset zoom và kéo thả khi mở modal
+          this.zoomLevel = 1;
+          this.dragX = 0;
+          this.dragY = 0;
+          this.lastX = 0;
+          this.lastY = 0;
+          this.isDragging = false;
+          
+          return;
+        }
+        
+        // Hoặc sử dụng Fancybox nếu cần
+        Fancybox.show([{ src: imageToShow }], {
+          animated: false,
+          dragToClose: false,
+          Image: { zoom: true }
+        });
+      } catch (error) {
+        console.error("Lỗi khi mở ảnh phóng to:", error);
+        // Backup plan - sử dụng cách đơn giản
+        window.open(this.currentImage, '_blank');
+      }
+    },
+    
+    closeZoomModal() {
+      // Reset zoom level when closing to ensure animation is smooth next time
+      setTimeout(() => {
+        this.zoomLevel = 1;
+        this.dragX = 0;
+        this.dragY = 0;
+        this.lastX = 0;
+        this.lastY = 0;
+        this.isDragging = false;
+      }, 200);
+      this.showZoomModal = false;
+    },
+    zoomIn() {
+      this.zoomLevel = Math.min(3, this.zoomLevel + 0.2);
+    },
+    zoomOut() {
+      this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.2);
+    },
+    resetZoom() {
+      this.zoomLevel = 1;
+      this.dragX = 0;
+      this.dragY = 0;
+      this.lastX = 0;
+      this.lastY = 0;
+    },
+    changeZoomedImage(image) {
+      this.zoomedImage = image;
+      this.zoomLevel = 1;
+      this.dragX = 0;
+      this.dragY = 0;
+      this.lastX = 0;
+      this.lastY = 0;
+    },
+    handleZoomWheel(event) {
+      event.preventDefault();
+      // Zoom in or out based on wheel direction
+      const delta = event.deltaY * -0.001;
+      const newZoom = this.zoomLevel + delta;
+      this.zoomLevel = Math.min(3, Math.max(0.5, newZoom));
+    },
+    startDrag(event) {
+      if (this.zoomLevel <= 1) return;
+      
+      this.isDragging = true;
+      
+      // Xử lý cả touch và mouse event
+      const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+      const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+      
+      this.startX = clientX - this.lastX;
+      this.startY = clientY - this.lastY;
+      
+      event.preventDefault();
+    },
+    
+    onDrag(event) {
+      if (!this.isDragging || this.zoomLevel <= 1) return;
+      
+      // Xử lý cả touch và mouse event
+      const clientX = event.clientX || (event.touches && event.touches[0].clientX);
+      const clientY = event.clientY || (event.touches && event.touches[0].clientY);
+      
+      this.dragX = (clientX - this.startX) / this.zoomLevel;
+      this.dragY = (clientY - this.startY) / this.zoomLevel;
+      
+      this.lastX = this.dragX;
+      this.lastY = this.dragY;
+      
+      event.preventDefault();
+    },
+    
+    stopDrag() {
+      this.isDragging = false;
+    },
+    downloadImage() {
+      // Tạo một thẻ a tạm thời để tải ảnh
+      const link = document.createElement('a');
+      link.href = this.zoomedImage;
+      
+      // Tạo tên file từ tên sản phẩm hoặc dùng tên mặc định
+      const fileName = this.product ? 
+        `${this.product.itemCode || 'product'}.jpg` : 
+        'product-image.jpg';
+      
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Xóa thẻ a sau khi đã tải xong
+      setTimeout(() => {
+        document.body.removeChild(link);
+      }, 100);
+    },
+    handleImageHover(event) {
+      // Skip hover effect on mobile
+      if (window.innerWidth <= 768) return;
+      
+      if (!this.isHovering) return;
+      
+      const rect = event.target.getBoundingClientRect();
+      
+      // Calculate mouse position relative to the image (in percentage)
+      const x = ((event.clientX - rect.left) / rect.width) * 100;
+      const y = ((event.clientY - rect.top) / rect.height) * 100;
+      
+      this.hoverX = x;
+      this.hoverY = y;
+    },
+    getHoverStyle() {
+      // Skip hover effect on mobile
+      if (window.innerWidth <= 768) return {};
+      
+      if (!this.isHovering) return {};
+      
+      return {
+        objectPosition: `${this.hoverX}% ${this.hoverY}%`,
+        transition: 'object-position 0.05s ease-out'
+      };
     }
   },
   // Lifecycle hooks
@@ -515,6 +759,10 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener('keydown', this.handleKeyNavigation);
+    // Close any open Fancybox
+    if (typeof Fancybox !== 'undefined') {
+      Fancybox.close();
+    }
   }
 };
 </script>
@@ -531,7 +779,7 @@ export default {
 
 .main-image {
   width: 100%;
-  height: 600px;
+  height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -543,96 +791,53 @@ export default {
   cursor: zoom-in;
 }
 
+.main-image:active .zoom-indicator {
+  transform: translateX(-50%) scale(0.95);
+  opacity: 0.9;
+}
+
+.main-image:active .main-img {
+  transition: all 0.1s ease-out;
+}
+
 .main-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
   border-radius: 12px;
-  transition: transform 0.3s ease;
+  transition: transform 0.5s ease, object-position 0.05s ease-out;
+  background: #f8f9fa;
+  display: block;
+  will-change: object-position, transform;
 }
 
-.main-img:hover {
-  transform: scale(1.02);
+.main-image:hover .main-img {
+  transform: scale(1.3);
 }
 
-/* Xóa nút zoom */
-.zoom-icon {
-  display: none;
-}
-
-/* Thêm hiệu ứng hover cho main image */
-.main-image:hover::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.main-image:hover::after {
+.main-image:hover .zoom-indicator {
   opacity: 1;
-}
-
-/* Thêm tooltip khi hover */
-.main-image::before {
-  content: 'Click để xem ảnh lớn';
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  z-index: 4;
-}
-
-.main-image:hover::before {
-  opacity: 1;
-}
-
-@media (max-width: 768px) {
-  .main-image::before {
-    font-size: 0.8rem;
-    padding: 6px 12px;
-  }
 }
 
 .thumbnails-wrapper {
   position: absolute;
-  bottom: 117px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
   z-index: 3;
-  padding: 0;
-  margin: 0;
-  height: 100px;
-  width: 90%; 
 }
 
 .thumbnails {
-     display: flex
-;
-    gap: 12px;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding: 0;
-    scroll-behavior: smooth;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    height: 100%;
-    align-items: center;
-    flex-direction: row;
-    justify-content: flex-start;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding: 6px 0;
+  max-width: 100%;
 }
 
 .thumbnails::-webkit-scrollbar {
@@ -640,24 +845,22 @@ export default {
 }
 
 .thumbnail-item {
-  border: 2px solid transparent;
+  border: 2px solid rgba(255, 255, 255, 0.8);
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   display: inline-block;
   flex-shrink: 0;
-  background: #f8f9fa;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .thumbnail-item.active,
 .thumbnail-item:hover {
   border: 2px solid #971b1e;
-  box-shadow: 0 4px 12px rgba(151, 27, 30, 0.2);
   transform: translateY(-2px);
 }
 
@@ -817,34 +1020,52 @@ export default {
 @media (max-width: 768px) {
   .main-image {
     height: 400px;
+    cursor: pointer;
   }
 
-  .thumbnails-wrapper {
-    bottom: 15px;
-    height: 80px;
-    width: 95%;
+  .main-image:hover .main-img,
+  .main-image:active .main-img {
+    transform: scale(1);
+    transition: none;
   }
 
-  .thumbnail-item {
-    width: 60px;
-    height: 60px;
-  }
-}
-
-@media (max-width: 576px) {
-  .main-image {
-    height: 300px;
-  }
-
-  .thumbnails-wrapper {
-    bottom: 10px;
-    height: 70px;
-    width: 95%;
+  .main-img {
+    will-change: auto;
+    transition: none;
   }
 
   .thumbnail-item {
     width: 50px;
     height: 50px;
+  }
+
+  .thumbnails-wrapper {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+  }
+
+  .nav-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .main-image {
+    height: 350px;
+  }
+
+  .thumbnails-wrapper {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .thumbnail-item {
+    width: 40px;
+    height: 40px;
   }
 }
 
@@ -885,11 +1106,6 @@ export default {
   right: 10px;
 }
 
-/* Thumbnail navigation buttons */
-.thumb-nav-btn {
-  display: none;
-}
-
 /* Fancybox custom styles */
 :deep(.fancybox__container) {
   --fancybox-bg: rgba(0, 0, 0, 0.85);
@@ -912,8 +1128,8 @@ export default {
 }
 
 :deep(.fancybox__image) {
-  object-fit: contain; /* Hiển thị đầy đủ hình ảnh, không cắt */
-  max-height: 90vh;
+  object-fit: contain !important; /* Hiển thị đầy đủ hình ảnh, không cắt */
+  max-height: 90vh !important;
   border-radius: 8px;
 }
 
@@ -941,6 +1157,22 @@ export default {
   border: 2px solid #971b1e;
 }
 
+:deep(.is-zooming) {
+  cursor: grabbing !important;
+}
+
+:deep(.is-draggable) {
+  cursor: grab !important;
+}
+
+@media (max-width: 768px) {
+  :deep(.fancybox__button) {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+}
+
 .image-type-overlay {
   position: absolute;
   top: 0;
@@ -955,6 +1187,14 @@ export default {
   z-index: 2;
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.image-type-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .main-image:hover .image-type-overlay {
@@ -966,7 +1206,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   border: none;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.9);
@@ -978,6 +1218,7 @@ export default {
   box-shadow: 0 2px 8px rgba(151, 27, 30, 0.1);
   transform: translateX(-100%);
   opacity: 0;
+  pointer-events: auto;
 }
 
 .main-image:hover .type-btn {
@@ -2479,5 +2720,301 @@ export default {
   font-size: 1.1rem;
   font-weight: 500;
   justify-content: center;
+}
+
+.hidden-img {
+  display: none;
+}
+
+/* Custom zoom modal styles */
+.custom-zoom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.custom-zoom-container {
+  position: relative;
+  width: 95%;
+  max-width: 1400px;
+  height: 95vh;
+  background: transparent;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.custom-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 40px;
+  margin-bottom: 16px;
+  background: rgba(30, 30, 30, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 20;
+}
+
+.toolbar-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0 5px;
+}
+
+.zoom-image-wrapper {
+  width: 100%;
+  flex-grow: 1;
+  min-height: 300px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  margin-bottom: 0; /* Changed from margin-bottom: 16px */
+}
+
+.custom-thumbnails {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  max-width: 80%;
+  overflow-x: auto;
+  padding: 10px 20px;
+  background: rgba(30, 30, 30, 0.8);
+  border-radius: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  z-index: 10;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.1);
+  color: #971b1e;
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.toolbar-spacer {
+  flex-grow: 1;
+}
+
+.zoom-image-wrapper:active {
+  cursor: grabbing;
+}
+
+.custom-zoomed-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.1s ease-out;
+  box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+}
+
+.custom-thumbnails::-webkit-scrollbar {
+  height: 8px;
+}
+
+.custom-thumbnails::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-thumbnails::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+}
+
+.thumbnails-container {
+  display: flex;
+  gap: 10px;
+  padding: 5px 10px;
+}
+
+.zoom-thumbnail-item {
+  width: 70px;
+  height: 70px;
+  min-width: 70px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  opacity: 0.7;
+}
+
+.zoom-thumbnail-item.active {
+  border-color: #971b1e;
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.zoom-thumbnail-item:hover {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.zoom-thumbnail-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.zoom-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 768px) {
+  .custom-zoom-container {
+    width: 100%;
+    padding: 10px;
+  }
+  
+  .zoom-image-wrapper {
+    height: calc(95vh - 220px);
+  }
+  
+  .toolbar-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  
+  .zoom-thumbnail-item {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+  }
+  
+  .custom-toolbar {
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    top: 10px;
+    right: 10px;
+  }
+  
+  .custom-thumbnails {
+    padding: 6px 15px;
+    max-width: 90%;
+    bottom: 15px;
+  }
+  
+  .thumbnails-container {
+    padding: 3px 8px;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+.custom-zoom-container {
+  animation: container-in 0.25s ease forwards;
+}
+
+@keyframes container-in {
+  from {
+    opacity: 0.8;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.zoom-indicator {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(151, 27, 30, 0.9);
+  border-radius: 30px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.main-image:hover .zoom-indicator {
+  opacity: 1;
+  animation: pulse 2s infinite;
+}
+
+.zoom-indicator i {
+  font-size: 1rem;
+  color: #fff;
+}
+
+.zoom-indicator span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+@keyframes pulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.05);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
 }
 </style>
