@@ -4,5 +4,11 @@
     "lightgallery": "^2.8.3",
     "photoswipe": "^5.4.4",
     "vue-easy-lightbox": "^1.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
   }
 }
