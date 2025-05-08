@@ -1,5 +1,5 @@
 <template>
-  <div class="product-detail py-5" v-if="product">
+  <div class="product-detail py-4" v-if="product">
     <!-- Breadcrumb -->
     <nav class="breadcrumb-nav mb-4">
       <ol class="breadcrumb">
@@ -246,7 +246,12 @@
 
     <!-- Custom Zoom Modal -->
     <transition name="fade">
-      <div v-if="showZoomModal" class="custom-zoom-modal" @click="closeZoomModal">
+      <div v-if="showZoomModal" class="custom-zoom-modal" 
+        :style="{ 
+          transform: isDraggingDown ? `translateY(${dragOffset}px)` : 'none',
+          background: `rgba(0, 0, 0, ${backgroundOpacity})`
+        }"
+        @click="closeZoomModal">
         <div class="custom-zoom-container" @click.stop>
           <div class="custom-toolbar">
             <button class="toolbar-btn" @click="zoomIn"><i class="fi fi-br-zoom-in"></i></button>
@@ -262,14 +267,28 @@
             @mousemove="onDrag" 
             @mouseup="stopDrag"
             @mouseleave="stopDrag"
-            @touchstart="startDrag" 
-            @touchmove="onDrag" 
-            @touchend="stopDrag">
+            @touchstart="handleTouchStart"
+            @touchmove="handleTouchMove"
+            @touchend="handleTouchEnd">
             <img :src="zoomedImage" alt="Zoomed Image" class="custom-zoomed-img" 
+              :class="{
+                'slide-left': slideDirection === 'left' && isSliding,
+                'slide-right': slideDirection === 'right' && isSliding
+              }"
               :style="{ 
                 transform: `scale(${zoomLevel}) translate(${dragX}px, ${dragY}px)` 
               }"
               @wheel="handleZoomWheel">
+              
+            <!-- Thêm nút điều hướng -->
+            <button v-if="allImages.length > 1" class="zoom-nav-btn prev-btn" @click.stop="navigateImage('prev')"
+              :disabled="currentImageIndex === 0">
+              <i class="fi fi-br-angle-left"></i>
+            </button>
+            <button v-if="allImages.length > 1" class="zoom-nav-btn next-btn" @click.stop="navigateImage('next')"
+              :disabled="currentImageIndex === allImages.length - 1">
+              <i class="fi fi-br-angle-right"></i>
+            </button>
           </div>
           
           <div class="custom-thumbnails">
@@ -341,6 +360,10 @@ export default {
   name: 'ProductDetail',
   setup() {
     const toast = useToast();
+    // set title
+    useHead({
+      title: 'Vietceramics - ' + product.name
+    });
     return { toast };
   },
   data() {
@@ -368,7 +391,17 @@ export default {
       lastY: 0,
       hoverX: 0,
       hoverY: 0,
-      isHovering: false
+      isHovering: false,
+      touchStartX: 0,
+      touchEndX: 0,
+      isSwiping: false,
+      slideDirection: '', // 'left' hoặc 'right'
+      isSliding: false,
+      touchStartY: 0,
+      touchEndY: 0,
+      isDraggingDown: false,
+      dragOffset: 0,
+      backgroundOpacity: 0.95, // Thêm opacity cho background
     };
   },
   computed: {
@@ -570,10 +603,31 @@ export default {
     // Navigate image with previous/next buttons
     navigateImage(direction) {
       if (direction === 'prev' && this.currentImageIndex > 0) {
+        this.slideDirection = 'right';
         this.currentImageIndex--;
       } else if (direction === 'next' && this.currentImageIndex < this.allImages.length - 1) {
+        this.slideDirection = 'left';
         this.currentImageIndex++;
       }
+      
+      // Cập nhật zoomedImage khi điều hướng trong popup
+      if (this.showZoomModal) {
+        this.isSliding = true;
+        this.zoomedImage = this.allImages[this.currentImageIndex];
+        // Reset zoom và vị trí khi chuyển ảnh
+        this.zoomLevel = 1;
+        this.dragX = 0;
+        this.dragY = 0;
+        this.lastX = 0;
+        this.lastY = 0;
+        
+        // Reset trạng thái sliding sau khi animation kết thúc
+        setTimeout(() => {
+          this.isSliding = false;
+          this.slideDirection = '';
+        }, 300);
+      }
+      
       this.scrollActiveThumbIntoView();
     },
 
@@ -642,16 +696,26 @@ export default {
     },
     
     closeZoomModal() {
-      // Reset zoom level when closing to ensure animation is smooth next time
+      // Thêm animation khi đóng
+      const modal = document.querySelector('.custom-zoom-modal');
+      if (modal) {
+        modal.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+        modal.style.transform = 'translateY(100%)';
+        modal.style.opacity = '0';
+      }
+      
       setTimeout(() => {
+        this.showZoomModal = false;
         this.zoomLevel = 1;
         this.dragX = 0;
         this.dragY = 0;
         this.lastX = 0;
         this.lastY = 0;
         this.isDragging = false;
-      }, 200);
-      this.showZoomModal = false;
+        this.isDraggingDown = false;
+        this.dragOffset = 0;
+        this.backgroundOpacity = 0.95; // Reset opacity
+      }, 300);
     },
     zoomIn() {
       this.zoomLevel = Math.min(3, this.zoomLevel + 0.2);
@@ -716,23 +780,63 @@ export default {
       this.isDragging = false;
     },
     downloadImage() {
-      // Tạo một thẻ a tạm thời để tải ảnh
-      const link = document.createElement('a');
-      link.href = this.zoomedImage;
-      
-      // Tạo tên file từ tên sản phẩm hoặc dùng tên mặc định
-      const fileName = this.product ? 
-        `${this.product.itemCode || 'product'}.jpg` : 
-        'product-image.jpg';
-      
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Xóa thẻ a sau khi đã tải xong
-      setTimeout(() => {
-        document.body.removeChild(link);
-      }, 100);
+      try {
+        // Lấy URL ảnh hiện tại
+        const imageUrl = this.zoomedImage;
+        
+        // Tạo tên file từ tên sản phẩm
+        const fileName = this.product ? 
+          `${this.product.itemCode || 'product'}.jpg` : 
+          'product-image.jpg';
+
+        // Tạo một thẻ img tạm thời để tải ảnh
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // Cho phép tải ảnh từ domain khác
+        
+        img.onload = () => {
+          // Tạo canvas để vẽ ảnh
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Vẽ ảnh vào canvas
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          
+          // Chuyển canvas thành blob
+          canvas.toBlob((blob) => {
+            // Tạo URL từ blob
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Tạo thẻ a để tải
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            
+            // Thêm vào DOM và kích hoạt click
+            document.body.appendChild(link);
+            link.click();
+            
+            // Dọn dẹp
+            setTimeout(() => {
+              document.body.removeChild(link);
+              URL.revokeObjectURL(blobUrl);
+            }, 100);
+             
+          }, 'image/jpeg', 0.95);
+        };
+        
+        img.onerror = () => {
+          this.toast.error('Không thể tải ảnh. Vui lòng thử lại.');
+        };
+        
+        // Bắt đầu tải ảnh
+        img.src = imageUrl;
+        
+      } catch (error) {
+        console.error('Lỗi khi tải ảnh:', error);
+        this.toast.error('Không thể tải ảnh. Vui lòng thử lại.');
+      }
     },
     handleImageHover(event) {
       // Skip hover effect on mobile
@@ -759,7 +863,76 @@ export default {
         objectPosition: `${this.hoverX}% ${this.hoverY}%`,
         transition: 'object-position 0.05s ease-out'
       };
-    }
+    },
+    handleTouchStart(event) {
+      if (this.zoomLevel > 1) return;
+      
+      this.touchStartX = event.touches[0].clientX;
+      this.touchStartY = event.touches[0].clientY;
+      this.isSwiping = true;
+      this.isDraggingDown = false;
+      this.dragOffset = 0;
+    },
+    
+    handleTouchMove(event) {
+      if (!this.isSwiping || this.zoomLevel > 1) return;
+      
+      this.touchEndX = event.touches[0].clientX;
+      this.touchEndY = event.touches[0].clientY;
+      
+      // Tính toán khoảng cách kéo theo chiều dọc
+      const deltaY = this.touchEndY - this.touchStartY;
+      
+      // Nếu kéo xuống đủ xa, bắt đầu hiệu ứng kéo
+      if (deltaY > 50) {
+        this.isDraggingDown = true;
+        this.dragOffset = Math.min(deltaY * 0.5, 300); // Giới hạn khoảng cách kéo
+        
+        // Tính toán opacity dựa trên khoảng cách kéo
+        const maxDrag = 300; // Khoảng cách kéo tối đa
+        const opacityRange = 0.95 - 0.3; // Phạm vi opacity (từ 0.95 đến 0.3)
+        const opacity = 0.95 - (this.dragOffset / maxDrag) * opacityRange;
+        this.backgroundOpacity = Math.max(0.3, opacity);
+        
+        event.preventDefault();
+      }
+    },
+    
+    handleTouchEnd() {
+      if (!this.isSwiping || this.zoomLevel > 1) return;
+      
+      const deltaX = this.touchEndX - this.touchStartX;
+      const deltaY = this.touchEndY - this.touchStartY;
+      const minSwipeDistance = 50;
+      
+      // Nếu đang kéo xuống và đã kéo đủ xa, đóng popup
+      if (this.isDraggingDown && deltaY > 100) {
+        this.closeZoomModal();
+        return;
+      }
+      
+      // Reset trạng thái kéo
+      this.isDraggingDown = false;
+      this.dragOffset = 0;
+      this.backgroundOpacity = 0.95; // Reset opacity
+      
+      // Xử lý vuốt ngang nếu không phải kéo xuống
+      if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaY) < 50) {
+        if (deltaX > 0) {
+          this.slideDirection = 'right';
+          this.navigateImage('prev');
+        } else {
+          this.slideDirection = 'left';
+          this.navigateImage('next');
+        }
+      }
+      
+      this.isSwiping = false;
+      this.touchStartX = 0;
+      this.touchEndX = 0;
+      this.touchStartY = 0;
+      this.touchEndY = 0;
+    },
   },
   // Lifecycle hooks
   mounted() {
@@ -806,7 +979,7 @@ export default {
 }
 
 .main-image:active .main-img {
-  transition: all 0.1s ease-out;
+  transition: none;
 }
 
 .main-img {
@@ -815,18 +988,12 @@ export default {
   object-fit: cover;
   object-position: center;
   border-radius: 12px;
-  transition: transform 0.5s ease, object-position 0.05s ease-out;
   background: #f8f9fa;
   display: block;
-  will-change: object-position, transform;
 }
 
 .main-image:hover .main-img {
-  transform: scale(1.3);
-}
-
-.main-image:hover .zoom-indicator {
-  opacity: 1;
+  transform: none;
 }
 
 .thumbnails-wrapper {
@@ -1030,13 +1197,7 @@ export default {
   .main-image {
     height: 400px;
     cursor: pointer;
-  }
-
-  .main-image:hover .main-img,
-  .main-image:active .main-img {
-    transform: scale(1);
-    transition: none;
-  }
+  } 
 
   .main-img {
     will-change: auto;
@@ -1871,6 +2032,7 @@ export default {
 .breadcrumb-nav {
   background: transparent;
   padding: 0;
+  overflow: hidden;
 }
 
 .breadcrumb {
@@ -1879,18 +2041,40 @@ export default {
   margin-bottom: 0;
   font-size: 1rem;
   border-radius: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  white-space: nowrap;
 }
 
-.breadcrumb-item+.breadcrumb-item::before {
+.breadcrumb::-webkit-scrollbar {
+  display: none;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
   content: "/";
   color: #aaa;
   padding: 0 6px;
+  flex-shrink: 0;
 }
 
 .breadcrumb-item a {
   color: #971b1e;
   text-decoration: none;
   transition: color 0.2s;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .breadcrumb-item a:hover {
@@ -1901,6 +2085,42 @@ export default {
 .breadcrumb-item.active {
   color: #222;
   font-weight: 600;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .breadcrumb {
+    font-size: 0.9rem;
+  }
+  
+  .breadcrumb-item a {
+    max-width: 100px;
+  }
+  
+  .breadcrumb-item.active {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 576px) {
+  .breadcrumb {
+    font-size: 0.85rem;
+  }
+  
+  .breadcrumb-item a {
+    max-width: 80px;
+  }
+  
+  .breadcrumb-item.active {
+    max-width: 120px;
+  }
+  
+  .breadcrumb-item + .breadcrumb-item::before {
+    padding: 0 4px;
+  }
 }
 
 .skeleton-wrapper {
@@ -2748,6 +2968,8 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: default;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out, background 0.3s ease-out;
+  will-change: transform, opacity, background;
 }
 
 .custom-zoom-container {
@@ -2761,6 +2983,25 @@ export default {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+}
+
+/* Thêm hiệu ứng khi kéo xuống */
+.custom-zoom-modal.is-dragging-down .custom-zoom-container {
+  transform: scale(0.95);
+  transition: transform 0.2s ease-out;
+}
+
+/* Animation khi đóng modal */
+.fade-leave-active {
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out, background 0.3s ease-out;
+}
+
+.fade-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .custom-toolbar {
@@ -2808,6 +3049,7 @@ export default {
   justify-content: center;
   cursor: grab;
   margin-bottom: 0; /* Changed from margin-bottom: 16px */
+  touch-action: pan-y pinch-zoom; /* Cho phép vuốt dọc và zoom */
 }
 
 .custom-thumbnails {
@@ -2817,12 +3059,8 @@ export default {
   transform: translateX(-50%);
   width: auto;
   max-width: 80%;
-  overflow-x: auto;
-  padding: 10px 20px;
-  background: rgba(30, 30, 30, 0.8);
-  border-radius: 30px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  overflow-x: auto; 
+  padding: 20px;;
   -webkit-backdrop-filter: blur(10px);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
@@ -2851,8 +3089,9 @@ export default {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  transition: transform 0.1s ease-out;
+  transition: transform 0.3s ease-out;
   box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+  will-change: transform;
 }
 
 .custom-thumbnails::-webkit-scrollbar {
@@ -3025,5 +3264,117 @@ export default {
   100% {
     transform: translateX(-50%) scale(1);
   }
+}
+
+.zoom-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #971b1e;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.zoom-nav-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.zoom-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: translateY(-50%);
+}
+
+.zoom-nav-btn.prev-btn {
+  left: 20px;
+}
+
+.zoom-nav-btn.next-btn {
+  right: 20px;
+}
+
+.zoom-nav-btn i {
+  font-size: 1.4rem;
+}
+
+@media (max-width: 768px) {
+  .zoom-nav-btn {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .zoom-nav-btn i {
+    font-size: 1.2rem;
+  }
+  
+  .zoom-nav-btn.prev-btn {
+    left: 10px;
+  }
+  
+  .zoom-nav-btn.next-btn {
+    right: 10px;
+  }
+}
+
+/* Animation khi chuyển ảnh */
+@keyframes slideLeft {
+  0% {
+    transform: translateX(100%) scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes slideRight {
+  0% {
+    transform: translateX(-100%) scale(1);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.slide-left {
+  animation: slideLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-right {
+  animation: slideRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Thêm hiệu ứng mờ cho ảnh khi đang trượt */
+.zoom-image-wrapper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.zoom-image-wrapper.is-sliding::before {
+  opacity: 1;
 }
 </style>
