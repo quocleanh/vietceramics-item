@@ -1,6 +1,6 @@
 module.exports = {
   publicPath: process.env.NODE_ENV === 'production'
-    ? '/vietceramics-item/frontend/' // Tên repository của bạn
+    ? '/vietceramics-item/' // Thêm dấu / ở cuối
     : '/',
   outputDir: 'dist',
   assetsDir: 'static',
