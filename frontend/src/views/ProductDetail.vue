@@ -362,7 +362,7 @@ export default {
     const toast = useToast();
     // set title
     useHead({
-      title: 'Vietceramics - ' + product.name
+      title: 'Vietceramics - Chi tiết sản phẩm'
     });
     return { toast };
   },
