@@ -4,7 +4,7 @@
       <div class="col-12">
         <div class="company-info mb-5">
           <div class="company-logo mb-3">
-            <img src="@/assets/images/logo-main.png" alt="Vietceramics Logo" class="img-fluid">
+            <img src="@/assets/images/logo-vietceramics.png" alt="Vietceramics Logo" class="img-fluid">
           </div>
           <h1 class="company-name">Công Ty Cổ Phần Quốc Tế Gốm Sứ Việt</h1>
           <div class="company-details">

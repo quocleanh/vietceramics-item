@@ -4,7 +4,7 @@
     <nav class="breadcrumb-nav mb-4">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-        <li class="breadcrumb-item"><a href="/catalog">Danh mục</a></li>
+        <li class="breadcrumb-item"><a href="/catalog">{{ product.productType }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
       </ol>
     </nav>
@@ -35,13 +35,13 @@
               </div>
             </div>
 
-            <img :src="currentImage" class="img-fluid main-img" :alt="product.name"
-              @click="openCustomModal"
-              @mousemove="handleImageHover"
-              @mouseenter="isHovering = true"
-              @mouseleave="isHovering = false"
-              :style="getHoverStyle()">
-            
+            <div v-if="imageLoading" class="main-image-skeleton"></div>
+            <img :src="currentImage" class="img-fluid main-img" :alt="product.name" @click="openCustomModal"
+              @mousemove="handleImageHover" @mouseenter="isHovering = true" @mouseleave="isHovering = false"
+              @load="handleMainImageLoad"
+              :style="getHoverStyle()"
+              :class="{ 'img-loading': imageLoading }">
+
             <div class="zoom-indicator">
               <i class="fi fi-br-zoom-in"></i>
               <span>Click để phóng to</span>
@@ -56,16 +56,23 @@
               :disabled="currentImageIndex === allImages.length - 1">
               <i class="fi fi-br-angle-right"></i>
             </button>
-            
+
             <!-- Embedded thumbnails -->
             <div class="thumbnails-wrapper">
+              <button class="thumb-nav thumb-nav-left" v-if="showLeftArrow" @click.stop="scrollThumbnails('left')">
+                <i class="fi fi-br-angle-left"></i>
+              </button>
               <div class="thumbnails d-flex justify-content-start gap-2" ref="thumbnails" @scroll="updateThumbArrows">
                 <div v-for="(image, index) in allImages" :key="index" class="thumbnail-item"
                   :class="{ active: index === currentImageIndex }" @click.stop="selectThumbnail(index, $event)"
                   :ref="index === currentImageIndex ? 'activeThumb' : null">
-                  <img :src="image" class="img-fluid thumb-img" :alt="product.name">
+                  <div v-if="!thumbLoaded[index]" class="thumb-skeleton"></div>
+                  <img :src="image" class="img-fluid thumb-img" :alt="product.name" @load="handleThumbLoad(index)">
                 </div>
               </div>
+              <button class="thumb-nav thumb-nav-right" v-if="showRightArrow" @click.stop="scrollThumbnails('right')">
+                <i class="fi fi-br-angle-right"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -163,7 +170,7 @@
               <div class="info-value">Đăng nhập để xem thông tin</div>
             </div>
           </div>
-           
+
         </div>
 
         <!-- Certificates -->
@@ -220,7 +227,7 @@
     <div class="row mt-5">
       <div class="col-12">
         <h3 class="section-title mb-3">Mô tả sản phẩm</h3>
-        <div class="long-description">{{ product.longDescription }}</div>
+        <div class="long-description">{{ product.custom_field169 }}</div>
       </div>
     </div>
 
@@ -246,12 +253,10 @@
 
     <!-- Custom Zoom Modal -->
     <transition name="fade">
-      <div v-if="showZoomModal" class="custom-zoom-modal" 
-        :style="{ 
-          transform: isDraggingDown ? `translateY(${dragOffset}px)` : 'none',
-          background: `rgba(0, 0, 0, ${backgroundOpacity})`
-        }"
-        @click="closeZoomModal">
+      <div v-if="showZoomModal" class="custom-zoom-modal" :style="{
+        transform: isDraggingDown ? `translateY(${dragOffset}px)` : 'none',
+        background: `rgba(0, 0, 0, ${backgroundOpacity})`
+      }" @click="closeZoomModal">
         <div class="custom-zoom-container" @click.stop>
           <div class="custom-toolbar">
             <button class="toolbar-btn" @click="zoomIn"><i class="fi fi-br-zoom-in"></i></button>
@@ -261,25 +266,17 @@
             <button class="toolbar-btn" @click="downloadImage"><i class="fi fi-br-download"></i></button>
             <button class="toolbar-btn" @click="closeZoomModal"><i class="fi fi-br-cross"></i></button>
           </div>
-          
-          <div class="zoom-image-wrapper" 
-            @mousedown="startDrag" 
-            @mousemove="onDrag" 
-            @mouseup="stopDrag"
-            @mouseleave="stopDrag"
-            @touchstart="handleTouchStart"
-            @touchmove="handleTouchMove"
+
+          <div class="zoom-image-wrapper" @mousedown="startDrag" @mousemove="onDrag" @mouseup="stopDrag"
+            @mouseleave="stopDrag" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
             @touchend="handleTouchEnd">
-            <img :src="zoomedImage" alt="Zoomed Image" class="custom-zoomed-img" 
-              :class="{
-                'slide-left': slideDirection === 'left' && isSliding,
-                'slide-right': slideDirection === 'right' && isSliding
-              }"
-              :style="{ 
-                transform: `scale(${zoomLevel}) translate(${dragX}px, ${dragY}px)` 
-              }"
-              @wheel="handleZoomWheel">
-              
+            <img :src="zoomedImage" alt="Zoomed Image" class="custom-zoomed-img" :class="{
+              'slide-left': slideDirection === 'left' && isSliding,
+              'slide-right': slideDirection === 'right' && isSliding
+            }" :style="{
+                transform: `scale(${zoomLevel}) translate(${dragX}px, ${dragY}px)`
+              }" @wheel="handleZoomWheel">
+
             <!-- Thêm nút điều hướng -->
             <button v-if="allImages.length > 1" class="zoom-nav-btn prev-btn" @click.stop="navigateImage('prev')"
               :disabled="currentImageIndex === 0">
@@ -290,13 +287,11 @@
               <i class="fi fi-br-angle-right"></i>
             </button>
           </div>
-          
+
           <div class="custom-thumbnails">
             <div class="thumbnails-container">
-              <div v-for="(image, index) in allImages" :key="index" 
-                class="zoom-thumbnail-item" 
-                :class="{ active: zoomedImage === image }"
-                @click="changeZoomedImage(image)">
+              <div v-for="(image, index) in allImages" :key="index" class="zoom-thumbnail-item"
+                :class="{ active: zoomedImage === image }" @click="changeZoomedImage(image)">
                 <img :src="image" class="zoom-thumb-img" :alt="product.name">
               </div>
             </div>
@@ -355,6 +350,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { useToast } from 'vue-toastification';
 import { useHead } from '@vueuse/head';
 import { productService } from '@/services/productService';
+import fieldDefinitions from '@/assets/product_field_definitions.json';
 
 export default {
   name: 'ProductDetail',
@@ -402,25 +398,74 @@ export default {
       isDraggingDown: false,
       dragOffset: 0,
       backgroundOpacity: 0.95, // Thêm opacity cho background
+      imageLoading: true,
+      thumbLoaded: {},
+      // Danh sách nhãn muốn ẩn khỏi phần thông số
+      hiddenLabels: [
+        'Ngày tạo',
+        'Ngày sửa',
+        'Người tạo',
+        'Người sửa',
+        'Ngừng theo dõi',
+        'Dùng chung',
+        'Bố cục',
+        'Theo dõi theo mã quy cách',
+        'Đơn giá bán 1',
+        'Đơn giá bán 2',
+        'Đơn giá bán cố định',
+        'Đơn giá chi phí',
+        'Giá bán là đơn giá sau thuế',
+        'Chủ sở hữu',
+        'Tên hàng hóa',
+        'Tên hàng hóa',
+        'Thuế GTGT',
+        'Thuế GTGT',
+        'Đơn giá mua',
+        'Đơn vị',
+        'Đơn giá bán',
+        'Ngầm định ghi nhận DS trước thuế',
+        'Diễn giải khi bán',
+        'Diễn giải khi bán',
+        'Nguồn gốc',
+        'Mã Hàng NCU',
+        'Loại Bán Hàng',
+        //'Hiển Thị Công Năng In Tem',
+        'Trọng Lượng/DVT Chính',
+        'Hướng Dẫn Sử Dụng',
+        'Hướng Dẫn Bảo Quản',
+        'Hướng Dẫn Vận Chuyển',
+        'Tính chất',
+        '',
+        '',
+      ]
     };
   },
   computed: {
     // Tổng hợp tất cả hình ảnh từ các nguồn
     allImages() {
+      const mainImages = (this.images && this.images.length) ? this.images : (this.product?.images || []);
+      const realImages = (this.images_real && this.images_real.length) ? this.images_real : (this.product?.images_real || []);
       return [
-        ...(this.product?.images || []),
+        ...mainImages,
         ...(this.images_perspective || []),
-        ...(this.product?.images_real || [])
+        ...realImages
       ];
     },
     // Lấy hình ảnh hiện tại đang hiển thị
     currentImage() {
       return this.allImages[this.currentImageIndex] || '';
     },
+    filteredSpecifications() {
+      if (!this.product || !this.product.specifications) return {};
+      return Object.fromEntries(
+        Object.entries(this.product.specifications).filter(
+          ([label]) => !this.hiddenLabels.includes(label)
+        )
+      );
+    },
     // Chia thông số kỹ thuật thành 2 cột
     specsChunks() {
-      if (!this.product) return [];
-      const entries = Object.entries(this.product.specifications);
+      const entries = Object.entries(this.filteredSpecifications);
       const mid = Math.ceil(entries.length / 2);
       return [
         Object.fromEntries(entries.slice(0, mid)),
@@ -475,16 +520,43 @@ export default {
   methods: {
     async loadImages() {
       try {
+        const productCode = this.product?.itemCode || this.product?.No_ || this.$route.params.id;
         // Tải song song các loại hình ảnh
         const [productImages, perspectiveImages, realImages] = await Promise.all([
-          productService.getProductImages(this.product.No_, 'product'),
-          productService.getProductImages(this.product.No_, 'perspective'),
-          productService.getProductImages(this.product.No_, 'real')
+          productService.getProductImages(productCode, 'product', this.product?.collectionName),
+          productService.getProductImages(productCode, 'perspective', this.product?.collectionName),
+          productService.getProductImages(productCode, 'real', this.product?.collectionName)
         ]);
 
-        this.images = productImages;
-        this.images_perspective = perspectiveImages;
-        this.images_real = realImages;
+        this.images = (productImages && productImages.length) ? productImages : [];
+        this.images_perspective = (perspectiveImages && perspectiveImages.length) ? perspectiveImages : [];
+        this.images_real = (realImages && realImages.length) ? realImages : [];
+
+       // Nếu không có ảnh nào, sử dụng placeholder để tránh màn trắng
+if (
+  !this.images.length &&
+  !this.images_perspective.length &&
+  !this.images_real.length
+) {
+  const productName = '';
+
+  const line1 = productName;                     // TÊN SẢN PHẨM (IN HOA, 1 dòng riêng)
+  const line2 = 'KHÔNG CÓ HÌNH ẢNH';             // Dòng thông báo
+  const line3 = 'VUI LÒNG LIÊN HỆ QC ';         // Dòng chú thích nhỏ
+
+  const placeholderText = encodeURIComponent(
+    `${line1}\n${line2}\n${line3}`
+  );
+
+  this.images = [
+    `https://placehold.co/600x600/971b1e/white?text=${placeholderText}&font=Roboto`
+  ];
+}
+
+        this.currentImageIndex = 0;
+        this.imageLoading = true;
+        this.thumbLoaded = {};
+        this.$nextTick(() => this.updateThumbArrows());
       } catch (error) {
         console.error('Error loading images:', error);
         this.toast.error('Không thể tải hình ảnh sản phẩm');
@@ -532,7 +604,7 @@ export default {
           const thumbWidth = activeThumb[0].offsetWidth;
           const containerWidth = container.clientWidth;
           const scrollLeft = container.scrollLeft;
-          
+
           // If the active thumbnail is not visible or partially visible, scroll it into view
           if (thumbLeft < scrollLeft || (thumbLeft + thumbWidth) > (scrollLeft + containerWidth)) {
             // Center the thumbnail in the container
@@ -541,6 +613,7 @@ export default {
               behavior: 'smooth'
             });
           }
+          this.updateThumbArrows();
         }
       });
     },
@@ -586,7 +659,7 @@ export default {
         name: this.product.name,
         code: this.product.itemCode,
         price: this.product.price,
-        image: this.images[0],
+        image: this.images[0] || (this.product.images && this.product.images[0]) || '',
         quantity: 1
       });
 
@@ -599,7 +672,7 @@ export default {
       localStorage.setItem('redirect_after_login', this.$route.fullPath);
       this.$router.push('/login');
     },
-    
+
     // Navigate image with previous/next buttons
     navigateImage(direction) {
       if (direction === 'prev' && this.currentImageIndex > 0) {
@@ -609,7 +682,7 @@ export default {
         this.slideDirection = 'left';
         this.currentImageIndex++;
       }
-      
+
       // Cập nhật zoomedImage khi điều hướng trong popup
       if (this.showZoomModal) {
         this.isSliding = true;
@@ -620,30 +693,30 @@ export default {
         this.dragY = 0;
         this.lastX = 0;
         this.lastY = 0;
-        
+
         // Reset trạng thái sliding sau khi animation kết thúc
         setTimeout(() => {
           this.isSliding = false;
           this.slideDirection = '';
         }, 300);
       }
-      
+
       this.scrollActiveThumbIntoView();
     },
 
     // Update thumbnail arrows visibility
     updateThumbArrows() {
       if (!this.$refs.thumbnails) return;
-      
+
       const container = this.$refs.thumbnails;
       this.showLeftArrow = container.scrollLeft > 0;
       this.showRightArrow = container.scrollLeft < (container.scrollWidth - container.clientWidth - 5);
     },
-    
+
     // Scroll thumbnails
     scrollThumbnails(direction) {
       if (!this.$refs.thumbnails) return;
-      
+
       const container = this.$refs.thumbnails;
       const scrollAmount = direction === 'left' ? -200 : 200;
       container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
@@ -662,15 +735,15 @@ export default {
       try {
         // Reset hover state
         this.isHovering = false;
-        
+
         // Sử dụng một cách tiếp cận khác, sử dụng Fancybox nhưng với API đơn giản hơn
         const imageToShow = this.currentImage;
-        
+
         // Nếu muốn sử dụng modal tự tạo thay vì Fancybox
         if (true) {
           this.zoomedImage = imageToShow;
           this.showZoomModal = true;
-          
+
           // Reset zoom và kéo thả khi mở modal
           this.zoomLevel = 1;
           this.dragX = 0;
@@ -678,10 +751,10 @@ export default {
           this.lastX = 0;
           this.lastY = 0;
           this.isDragging = false;
-          
+
           return;
         }
-        
+
         // Hoặc sử dụng Fancybox nếu cần
         Fancybox.show([{ src: imageToShow }], {
           animated: false,
@@ -694,7 +767,7 @@ export default {
         window.open(this.currentImage, '_blank');
       }
     },
-    
+
     closeZoomModal() {
       // Thêm animation khi đóng
       const modal = document.querySelector('.custom-zoom-modal');
@@ -703,7 +776,7 @@ export default {
         modal.style.transform = 'translateY(100%)';
         modal.style.opacity = '0';
       }
-      
+
       setTimeout(() => {
         this.showZoomModal = false;
         this.zoomLevel = 1;
@@ -747,35 +820,35 @@ export default {
     },
     startDrag(event) {
       if (this.zoomLevel <= 1) return;
-      
+
       this.isDragging = true;
-      
+
       // Xử lý cả touch và mouse event
       const clientX = event.clientX || (event.touches && event.touches[0].clientX);
       const clientY = event.clientY || (event.touches && event.touches[0].clientY);
-      
+
       this.startX = clientX - this.lastX;
       this.startY = clientY - this.lastY;
-      
+
       event.preventDefault();
     },
-    
+
     onDrag(event) {
       if (!this.isDragging || this.zoomLevel <= 1) return;
-      
+
       // Xử lý cả touch và mouse event
       const clientX = event.clientX || (event.touches && event.touches[0].clientX);
       const clientY = event.clientY || (event.touches && event.touches[0].clientY);
-      
+
       this.dragX = (clientX - this.startX) / this.zoomLevel;
       this.dragY = (clientY - this.startY) / this.zoomLevel;
-      
+
       this.lastX = this.dragX;
       this.lastY = this.dragY;
-      
+
       event.preventDefault();
     },
-    
+
     stopDrag() {
       this.isDragging = false;
     },
@@ -783,56 +856,56 @@ export default {
       try {
         // Lấy URL ảnh hiện tại
         const imageUrl = this.zoomedImage;
-        
+
         // Tạo tên file từ tên sản phẩm
-        const fileName = this.product ? 
-          `${this.product.itemCode || 'product'}.jpg` : 
+        const fileName = this.product ?
+          `${this.product.itemCode || 'product'}.jpg` :
           'product-image.jpg';
 
         // Tạo một thẻ img tạm thời để tải ảnh
         const img = new Image();
         img.crossOrigin = 'anonymous'; // Cho phép tải ảnh từ domain khác
-        
+
         img.onload = () => {
           // Tạo canvas để vẽ ảnh
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
-          
+
           // Vẽ ảnh vào canvas
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-          
+
           // Chuyển canvas thành blob
           canvas.toBlob((blob) => {
             // Tạo URL từ blob
             const blobUrl = URL.createObjectURL(blob);
-            
+
             // Tạo thẻ a để tải
             const link = document.createElement('a');
             link.href = blobUrl;
             link.download = fileName;
-            
+
             // Thêm vào DOM và kích hoạt click
             document.body.appendChild(link);
             link.click();
-            
+
             // Dọn dẹp
             setTimeout(() => {
               document.body.removeChild(link);
               URL.revokeObjectURL(blobUrl);
             }, 100);
-             
+
           }, 'image/jpeg', 0.95);
         };
-        
+
         img.onerror = () => {
           this.toast.error('Không thể tải ảnh. Vui lòng thử lại.');
         };
-        
+
         // Bắt đầu tải ảnh
         img.src = imageUrl;
-        
+
       } catch (error) {
         console.error('Lỗi khi tải ảnh:', error);
         this.toast.error('Không thể tải ảnh. Vui lòng thử lại.');
@@ -841,24 +914,24 @@ export default {
     handleImageHover(event) {
       // Skip hover effect on mobile
       if (window.innerWidth <= 768) return;
-      
+
       if (!this.isHovering) return;
-      
+
       const rect = event.target.getBoundingClientRect();
-      
+
       // Calculate mouse position relative to the image (in percentage)
       const x = ((event.clientX - rect.left) / rect.width) * 100;
       const y = ((event.clientY - rect.top) / rect.height) * 100;
-      
+
       this.hoverX = x;
       this.hoverY = y;
     },
     getHoverStyle() {
       // Skip hover effect on mobile
       if (window.innerWidth <= 768) return {};
-      
+
       if (!this.isHovering) return {};
-      
+
       return {
         objectPosition: `${this.hoverX}% ${this.hoverY}%`,
         transition: 'object-position 0.05s ease-out'
@@ -866,56 +939,56 @@ export default {
     },
     handleTouchStart(event) {
       if (this.zoomLevel > 1) return;
-      
+
       this.touchStartX = event.touches[0].clientX;
       this.touchStartY = event.touches[0].clientY;
       this.isSwiping = true;
       this.isDraggingDown = false;
       this.dragOffset = 0;
     },
-    
+
     handleTouchMove(event) {
       if (!this.isSwiping || this.zoomLevel > 1) return;
-      
+
       this.touchEndX = event.touches[0].clientX;
       this.touchEndY = event.touches[0].clientY;
-      
+
       // Tính toán khoảng cách kéo theo chiều dọc
       const deltaY = this.touchEndY - this.touchStartY;
-      
+
       // Nếu kéo xuống đủ xa, bắt đầu hiệu ứng kéo
       if (deltaY > 50) {
         this.isDraggingDown = true;
         this.dragOffset = Math.min(deltaY * 0.5, 300); // Giới hạn khoảng cách kéo
-        
+
         // Tính toán opacity dựa trên khoảng cách kéo
         const maxDrag = 300; // Khoảng cách kéo tối đa
         const opacityRange = 0.95 - 0.3; // Phạm vi opacity (từ 0.95 đến 0.3)
         const opacity = 0.95 - (this.dragOffset / maxDrag) * opacityRange;
         this.backgroundOpacity = Math.max(0.3, opacity);
-        
+
         event.preventDefault();
       }
     },
-    
+
     handleTouchEnd() {
       if (!this.isSwiping || this.zoomLevel > 1) return;
-      
+
       const deltaX = this.touchEndX - this.touchStartX;
       const deltaY = this.touchEndY - this.touchStartY;
       const minSwipeDistance = 50;
-      
+
       // Nếu đang kéo xuống và đã kéo đủ xa, đóng popup
       if (this.isDraggingDown && deltaY > 100) {
         this.closeZoomModal();
         return;
       }
-      
+
       // Reset trạng thái kéo
       this.isDraggingDown = false;
       this.dragOffset = 0;
       this.backgroundOpacity = 0.95; // Reset opacity
-      
+
       // Xử lý vuốt ngang nếu không phải kéo xuống
       if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaY) < 50) {
         if (deltaX > 0) {
@@ -926,18 +999,33 @@ export default {
           this.navigateImage('next');
         }
       }
-      
+
       this.isSwiping = false;
       this.touchStartX = 0;
       this.touchEndX = 0;
       this.touchStartY = 0;
       this.touchEndY = 0;
     },
+    formatPrice(value) {
+      const number = Number(value) || 0;
+      return number.toLocaleString('vi-VN') + 'đ';
+    },
+    handleMainImageLoad() {
+      this.imageLoading = false;
+    },
+    handleThumbLoad(index) {
+      this.thumbLoaded = { ...this.thumbLoaded, [index]: true };
+    }
   },
   // Lifecycle hooks
   mounted() {
     this.fetchProduct();
     window.addEventListener('keydown', this.handleKeyNavigation);
+  },
+  watch: {
+    currentImage() {
+      this.imageLoading = true;
+    }
   },
   beforeUnmount() {
     window.removeEventListener('keydown', this.handleKeyNavigation);
@@ -961,7 +1049,7 @@ export default {
 
 .main-image {
   width: 100%;
-  height: 500px;
+  height: 650px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -996,12 +1084,28 @@ export default {
   transform: none;
 }
 
+.main-image-skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f3f3f3 25%, #e2e2e2 50%, #f3f3f3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+
+.img-loading {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
 .thumbnails-wrapper {
   position: absolute;
   bottom: 16px;
   left: 16px;
   right: 16px;
   z-index: 3;
+  display: flex;
+  align-items: center;
 }
 
 .thumbnails {
@@ -1016,9 +1120,32 @@ export default {
   max-width: 100%;
 }
 
+.thumb-nav {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 4;
+}
+
+.thumb-nav-left {
+  margin-right: 8px;
+}
+
+.thumb-nav-right {
+  margin-left: 8px;
+}
+
 .thumbnails::-webkit-scrollbar {
   display: none;
 }
+
 
 .thumbnail-item {
   border: 2px solid rgba(255, 255, 255, 0.8);
@@ -1048,6 +1175,16 @@ export default {
   height: 100%;
   object-fit: cover !important;
   object-position: center !important;
+}
+
+.thumb-skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f3f3f3 25%, #e2e2e2 50%, #f3f3f3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  z-index: 1;
 }
 
 /* Modal zoom */
@@ -1197,7 +1334,7 @@ export default {
   .main-image {
     height: 400px;
     cursor: pointer;
-  } 
+  }
 
   .main-img {
     will-change: auto;
@@ -1294,11 +1431,13 @@ export default {
 }
 
 :deep(.fancybox__content) {
-  background: transparent; /* Nền trong suốt cho content */
+  background: transparent;
+  /* Nền trong suốt cho content */
 }
 
 :deep(.fancybox__image) {
-  object-fit: contain !important; /* Hiển thị đầy đủ hình ảnh, không cắt */
+  object-fit: contain !important;
+  /* Hiển thị đầy đủ hình ảnh, không cắt */
   max-height: 90vh !important;
   border-radius: 8px;
 }
@@ -2059,7 +2198,7 @@ export default {
   flex-shrink: 0;
 }
 
-.breadcrumb-item + .breadcrumb-item::before {
+.breadcrumb-item+.breadcrumb-item::before {
   content: "/";
   color: #aaa;
   padding: 0 6px;
@@ -2095,11 +2234,11 @@ export default {
   .breadcrumb {
     font-size: 0.9rem;
   }
-  
+
   .breadcrumb-item a {
     max-width: 100px;
   }
-  
+
   .breadcrumb-item.active {
     max-width: 150px;
   }
@@ -2109,16 +2248,16 @@ export default {
   .breadcrumb {
     font-size: 0.85rem;
   }
-  
+
   .breadcrumb-item a {
     max-width: 80px;
   }
-  
+
   .breadcrumb-item.active {
     max-width: 120px;
   }
-  
-  .breadcrumb-item + .breadcrumb-item::before {
+
+  .breadcrumb-item+.breadcrumb-item::before {
     padding: 0 4px;
   }
 }
@@ -3048,8 +3187,10 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: grab;
-  margin-bottom: 0; /* Changed from margin-bottom: 16px */
-  touch-action: pan-y pinch-zoom; /* Cho phép vuốt dọc và zoom */
+  margin-bottom: 0;
+  /* Changed from margin-bottom: 16px */
+  touch-action: pan-y pinch-zoom;
+  /* Cho phép vuốt dọc và zoom */
 }
 
 .custom-thumbnails {
@@ -3059,8 +3200,9 @@ export default {
   transform: translateX(-50%);
   width: auto;
   max-width: 80%;
-  overflow-x: auto; 
-  padding: 20px;;
+  overflow-x: auto;
+  padding: 20px;
+  ;
   -webkit-backdrop-filter: blur(10px);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
@@ -3157,36 +3299,36 @@ export default {
     width: 100%;
     padding: 10px;
   }
-  
+
   .zoom-image-wrapper {
     height: calc(95vh - 220px);
   }
-  
+
   .toolbar-btn {
     width: 32px;
     height: 32px;
     font-size: 1rem;
   }
-  
+
   .zoom-thumbnail-item {
     width: 60px;
     height: 60px;
     min-width: 60px;
   }
-  
+
   .custom-toolbar {
     padding: 8px 12px;
     margin-bottom: 10px;
     top: 10px;
     right: 10px;
   }
-  
+
   .custom-thumbnails {
     padding: 6px 15px;
     max-width: 90%;
     bottom: 15px;
   }
-  
+
   .thumbnails-container {
     padding: 3px 8px;
   }
@@ -3212,6 +3354,7 @@ export default {
     opacity: 0.8;
     transform: scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -3258,9 +3401,11 @@ export default {
   0% {
     transform: translateX(-50%) scale(1);
   }
+
   50% {
     transform: translateX(-50%) scale(1.05);
   }
+
   100% {
     transform: translateX(-50%) scale(1);
   }
@@ -3314,15 +3459,15 @@ export default {
     width: 40px;
     height: 40px;
   }
-  
+
   .zoom-nav-btn i {
     font-size: 1.2rem;
   }
-  
+
   .zoom-nav-btn.prev-btn {
     left: 10px;
   }
-  
+
   .zoom-nav-btn.next-btn {
     right: 10px;
   }
@@ -3334,6 +3479,7 @@ export default {
     transform: translateX(100%) scale(1);
     opacity: 0;
   }
+
   100% {
     transform: translateX(0) scale(1);
     opacity: 1;
@@ -3345,6 +3491,7 @@ export default {
     transform: translateX(-100%) scale(1);
     opacity: 0;
   }
+
   100% {
     transform: translateX(0) scale(1);
     opacity: 1;

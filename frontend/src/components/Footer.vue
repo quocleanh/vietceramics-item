@@ -12,7 +12,7 @@
         <div class="contact-info">
           <div class="contact-item">
             <i class="fi fi-br-map-marker"></i>
-            <span>778k/2 Nguyễn Kiệm, Phường 4, Quận Phú Nhuận, TP. HCM</span>
+            <span>778K/2 Nguyễn Kiệm, Phường Đức Nhuận, TP.HCM, TP. HCM</span>
           </div>
           <div class="contact-item">
             <i class="fi fi-br-phone-call"></i>

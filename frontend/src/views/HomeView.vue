@@ -6,9 +6,39 @@
         <div class="row justify-content-center">
           <div class="col-md-9 text-center">
             <!-- Logo -->
-            <div class="logo-wrapper mb-1">
-              <img src="https://file.hstatic.net/200000095849/file/logo1_d8e1f1e6412b479384fe672d8f1fd97f.jpg"
-                alt="Vietceramics" class="logo">
+            <div class="logo-wrapper mb-3">
+              <img src="@/assets/images/logo-vietceramics.png" alt="Logo" class="logo mx-auto d-block" />
+            </div>
+
+            <!-- User/Login -->
+            <div class="top-right-login" @click.stop>
+              <router-link v-if="!userData" to="/login" class="btn-login-top">
+                <i class="fi fi-br-user"></i>
+                <span>Đăng nhập</span>
+              </router-link>
+              <div v-else class="user-pill" @click="toggleUserMenu">
+                <i class="fi fi-br-user"></i>
+                <span>{{ userData.name || userData.username }}</span>
+                <i class="fi fi-br-angle-down small-icon"></i>
+              </div>
+              <div v-if="showUserMenu" class="home-user-menu">
+                <div class="home-user-menu-item">
+                  <i class="fi fi-br-user"></i>
+                  <span>{{ userData.name || userData.username }}</span>
+                </div>
+                <router-link class="home-user-menu-item" to="/quote-list" @click="closeUserMenu">
+                  <i class="fi fi-br-file-invoice"></i>
+                  <span>Báo giá của tôi</span>
+                </router-link>
+                <router-link class="home-user-menu-item" to="/profile" @click="closeUserMenu">
+                  <i class="fi fi-br-settings"></i>
+                  <span>Tài khoản</span>
+                </router-link>
+                <button class="home-user-menu-item logout-btn" @click="handleLogout">
+                  <i class="fi fi-br-sign-out"></i>
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
             </div>
 
             <!-- Search Box -->
@@ -33,14 +63,16 @@
                     <div class="d-flex align-items-center">
                       <div class="search-thumb-wrapper">
                         <img :src="item.thumbnail" class="search-thumb" :alt="item.name"
-                          @error="$event.target.src = 'https://via.placeholder.com/60x60?text=No+Image'" />
+                          @error="$event.target.src = 'https://placehold.co/100x100?text=vietceramics'" />
                       </div>
                       <div class="search-item-content">
-                        <router-link :to="'/san-pham/' + item.id" class="product-name">
-                          {{ item.name }}
+                        <router-link :to="'/san-pham/' + item.product_code" class="product-name">
+                          {{ item.product_name }}   
                         </router-link>
                         <div class="collection-name">
-                          {{ item.collectionName }}
+                          <router-link :to="'/danh-muc?collection=' + item.collectionName" class="collection-name">
+                            Bộ sưu tập: {{ item.collectionName }}
+                          </router-link>
                         </div>
                       </div>
                       <div class="search-item-icon">
@@ -92,7 +124,8 @@
 
 <script>
 import axios from 'axios'
-
+const apiBaseUrl = 'https://api.vietceramics.com/api'
+const cdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'http://toppstiles.com.vn/products-test/').trim()
 export default {
   name: 'HomeView',
   data() {
@@ -101,6 +134,8 @@ export default {
       searchResults: [],
       showResults: false,
       isSearching: false,
+      userData: null,
+      showUserMenu: false,
       spaces: [
         {
           id: 'pn',
@@ -177,6 +212,26 @@ export default {
     }
   },
   methods: {
+    checkLoginStatus() {
+      const user = localStorage.getItem('user')
+      if (!user) {
+        this.userData = null
+        return
+      }
+      try {
+        const parsed = JSON.parse(user)
+        if (new Date(parsed.expiresAt) > new Date()) {
+          this.userData = parsed
+        } else {
+          localStorage.removeItem('user')
+          this.userData = null
+        }
+      } catch (e) {
+        console.error('parse user error', e)
+        localStorage.removeItem('user')
+        this.userData = null
+      }
+    },
     debounce(func, wait) {
       let timeout
       return function executedFunction(...args) {
@@ -190,29 +245,26 @@ export default {
     },
     async handleSearch() {
       try {
-        if (this.searchQuery.length > 0) {
+        const keyword = this.searchQuery.trim()
+        if (keyword.length > 0) {
           this.isSearching = true
-          console.log('Searching for:', this.searchQuery)
-          const response = await axios.post('/api/Init/SuggestByCode', {
-            keyword: this.searchQuery
+          const response = await axios.get(`${apiBaseUrl}/Products/Search`, {
+            params: {
+              keyword,
+              pageIndex: 1,
+              pageSize: 10
+            }
           })
-          
-          console.log('Search response:', response.data)
-          // Check if response.data is an array
-          const items = Array.isArray(response.data) ? response.data : []
-          if (items.length > 0) {
-            // Transform API response to our format
-            this.searchResults = items.slice(0, 10).map(item => ({
-              id: item.No_,
-              itemCode: item.No_,
-              name: item.Name || 'Gạch ' + item.No_,
-              collectionName: item.Class || 'Chưa phân loại',
-              thumbnail: `http://toppstiles.com.vn/products-test/hinh-gach/${item.No_}.jpg`
-            }))
-            console.log('Transformed results:', this.searchResults)
-          } else {
-            this.searchResults = []
-          }
+          // Check if response.data.data is an array
+          const items = Array.isArray(response.data?.data) ? response.data.data : []
+          console.log('Search results:', items)
+          this.searchResults = items.map(item => ({
+            id: item.id,
+            product_code: item.product_code,
+            product_name: item.product_name,
+            collectionName: item.custom_field121 || item.product_category || item.custom_field68 || 'Chưa phân loại',
+            thumbnail: "https://static.superstone.com.vn/products-test/hinh-gach/" + item.product_code + ".jpg"
+          }))
           this.showResults = true
         } else {
           this.searchResults = []
@@ -225,16 +277,100 @@ export default {
       } finally {
         this.isSearching = false
       }
+    },
+    toggleUserMenu() {
+      this.showUserMenu = !this.showUserMenu
+    },
+    closeUserMenu() {
+      this.showUserMenu = false
+    },
+    handleLogout() {
+      localStorage.removeItem('user')
+      this.userData = null
+      this.showUserMenu = false
+      this.$router.push('/login')
     }
+  },
+  mounted() {
+    document.addEventListener('click', this.closeUserMenu)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeUserMenu)
   },
   created() {
     // Debounce the search handler
     this.handleSearch = this.debounce(this.handleSearch, 300)
+    this.checkLoginStatus()
   }
 }
 </script>
 
 <style scoped>
+.top-right-login {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
+}
+
+.btn-login-top, .user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  color: #000;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: all 0.2s ease;
+}
+
+.btn-login-top:hover, .user-pill:hover {
+  transform: translateY(-2px);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.home-user-menu {
+  position: absolute;
+  top: 44px;
+  right: 0;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  min-width: 220px;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+.home-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: #222;
+  text-decoration: none;
+  background: #fff;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-user-menu-item:hover {
+  background: #f5f5f5;
+}
+
+.home-user-menu .logout-btn {
+  color: #b00020;
+}
+
+.small-icon {
+  font-size: 14px;
+}
+
 .hero-section {
   background-color: white;
   display: flex;
@@ -243,6 +379,7 @@ export default {
 }
 
 .logo {
+  height: 70px;
   max-height: 70px;
   width: auto;
   margin-bottom: 1.5rem;
@@ -381,6 +518,15 @@ export default {
   color: #000;
   text-decoration: underline;
 }
+
+.collection-name {
+  margin-top: -4px;
+  font-size: 0.85rem;
+  color: #5f6368;
+  text-decoration: none;
+}
+
+
 
 .collection-name {
   font-size: 0.85rem;

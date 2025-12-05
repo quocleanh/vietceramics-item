@@ -117,3 +117,19 @@ item/
 - [ ] Tạo trang tìm kiếm, chi tiết, catalog
 - [ ] Tối ưu SEO và structured data
 
+
+## Cách chạy dự án
+1. Cài đặt Docker và Docker Compose.
+2. Clone repository về máy local.
+3. Tạo file `.env` từ mẫu `.env.example` và cấu hình biến môi trường cần thiết.
+4. Chạy lệnh sau để khởi động các dịch vụ:
+    ```bash
+    docker-compose up --build
+    ```
+5. Truy cập ứng dụng qua trình duyệt tại `http://localhost:8080`.
+## Liên hệ
+Nếu có thắc mắc hoặc cần hỗ trợ, vui lòng liên hệ qua email: support@vietceramics.vn
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+

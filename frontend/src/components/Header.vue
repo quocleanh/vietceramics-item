@@ -6,7 +6,7 @@
                 <!-- Logo bên trái - col-2 -->
                 <div class="col-3">
                     <router-link class="navbar-brand" to="/">
-                        <img src="https://www.vietceramics.com/Assets/img/logo-footer.png"
+                        <img src="@/assets/images/logo-footer.png"
                             alt="Vietceramics" height="50">
                     </router-link>
                 </div>
@@ -44,7 +44,7 @@
                                 <div class="d-flex">
                                     <div class="search-thumb-wrapper">
                                         <img :src="item.thumbnail" class="search-thumb" :alt="item.name" 
-                                            @error="$event.target.src='https://via.placeholder.com/60x60?text=No+Image'" />
+                                            @error="$event.target.src='https://placehold.co/100x100?text=vietceramics'" />
                                     </div>
                                     <div class="search-item-content">
                                         <router-link :to="'/san-pham/' + item.id" class="product-name" @click="closeSearch">
@@ -73,7 +73,7 @@
                         <div class="user-menu" v-else>
                             <button class="btn-user" @click="toggleMenu">
                                 <i class="fi fi-br-user"></i>
-                                <span class="d-none d-md-inline">{{ userData.username }}</span>
+                                <span class="d-none d-md-inline">{{ userData.name || userData.username }}</span>
                             </button>
                             <!-- Desktop Dropdown Menu -->
                             <div class="dropdown-menu" v-if="isMenuOpen">
@@ -107,7 +107,7 @@
                 <!-- Logo ở giữa -->
                 <div class="col-7 text-center">
                     <router-link class="navbar-brand" to="/">
-                        <img src="https://www.vietceramics.com/Assets/img/logo-footer.png"
+                        <img src="@/assets/images/logo-footer.png"
                             alt="Vietceramics" height="40">
                     </router-link>
                 </div>
@@ -129,7 +129,7 @@
                             <div class="mobile-menu-header">
                                 <div class="user-info">
                                     <i class="fi fi-br-user"></i>
-                                    <span>{{ userData.username }}</span>
+                                    <span>{{ userData.name || userData.username }}</span>
                                 </div>
                                 <button class="close-btn" @click="closeMenu">
                                     <i class="fi fi-br-cross"></i>
@@ -187,7 +187,7 @@
                         <div class="d-flex">
                             <div class="search-thumb-wrapper">
                                 <img :src="item.thumbnail" class="search-thumb" :alt="item.name" 
-                                    @error="$event.target.src='https://via.placeholder.com/60x60?text=No+Image'" />
+                                    @error="$event.target.src='https://placehold.co/100x100?text=vietceramics'" />
                             </div>
                             <div class="search-item-content">
                                 <router-link :to="'/san-pham/' + item.id" class="product-name" @click="closeSearch">
@@ -218,6 +218,8 @@ import { useToast } from 'vue-toastification'
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const apiBaseUrl = 'https://api.vietceramics.com/api'
+const cdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'http://toppstiles.com.vn/products-test/').trim()
 
 // State
 const isMenuOpen = ref(false)
@@ -290,34 +292,41 @@ const handleUserLogin = (event) => {
 
 const handleSearch = debounce(async () => {
     try {
-        if (searchQuery.value.length > 0) {
-            isSearching.value = true
-            console.log('Searching for:', searchQuery.value)
-            const response = await axios.post('/api/Init/SuggestByCode', {
-                keyword: searchQuery.value
-            })
-            
-            console.log('Search response:', response.data)
-            // Check if response.data is an array
-            const items = Array.isArray(response.data) ? response.data : []
-            if (items.length > 0) {
-                // Transform API response to our format
-                searchResults.value = items.slice(0, 10).map(item => ({
-                    id: item.No_,
-                    itemCode: item.No_,
-                    name: item.Name || 'Gạch ' + item.No_,
-                    collectionName: item.Class || 'Chưa phân loại',
-                    thumbnail: `http://toppstiles.com.vn/products-test/hinh-gach/${item.No_}.jpg`
-                }))
-                console.log('Transformed results:', searchResults.value)
-            } else {
-                searchResults.value = []
-            }
-            showResults.value = true
-        } else {
+        const keyword = searchQuery.value.trim()
+        if (!keyword.length) {
             searchResults.value = []
             showResults.value = false
+            return
         }
+
+        isSearching.value = true
+        const response = await axios.get(`${apiBaseUrl}/Products/Search`, {
+            params: {
+                keyword,
+                pageIndex: 1,
+                pageSize: 10
+            }
+        })
+        
+        // Check if response.data.data is an array
+        const items = Array.isArray(response.data?.data) ? response.data.data : []
+        if (items.length > 0) {
+            // Transform API response to our format
+            searchResults.value = items.slice(0, 10).map(item => {
+                const productId = item.product_code || item.id
+                return {
+                    id: productId,
+                    itemCode: productId,
+                    name: item.product_name || productId || 'Sản phẩm',
+                    collectionName: item.custom_field121 || item.product_category || item.custom_field68 || 'Chưa phân loại',
+                    thumbnail: item.avatar || `${cdnBaseUrl}hinh-gach/${productId}.jpg`
+                }
+            })
+            console.log('Transformed results:', searchResults.value)
+        } else {
+            searchResults.value = []
+        }
+        showResults.value = true
     } catch (error) {
         console.error('Search error:', error)
         searchResults.value = []

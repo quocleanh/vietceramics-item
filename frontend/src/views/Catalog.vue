@@ -4,9 +4,7 @@
       <!-- Bộ lọc -->
       <div class="col-3 d-none d-xxl-block">
         <div class="filters-section">
-          <h3>Bộ lọc</h3>
-
-          
+          <h3>Bộ lọc</h3> 
           <!-- Danh mục 3 cấp -->
           <div class="filter-group mb-4">
             <h4>Danh mục sản phẩm</h4>

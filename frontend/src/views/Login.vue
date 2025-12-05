@@ -1,10 +1,9 @@
 <template>
   <div class="login-page">
     <div class="login-container">
-      <div class="login-header">
-        <img src="@/assets/images/logo-main.png" alt="Logo" class="login-logo">
+      <div class="login-header"> 
         <h2>Đăng nhập</h2>
-      </div>
+      </div> 
       
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
@@ -69,6 +68,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
+import axios from 'axios'
+
+// Gọi trực tiếp API GetUserBFO
+const authEndpoint = 'https://api.vietceramics.com/api/v1/GetUserBFO'
+const privateKey = '+es6!Tb{ZGxQqN5@F}MiwL1y3Sz(7$AhnfUJltKOa4)0RjdoP8WcCpIvV=[2Y9Dk%'
 
 export default {
   name: 'Login',
@@ -127,64 +131,74 @@ export default {
       error.value = ''
 
       try {
-        // Mock authentication
-        if (username.value === 'admin' && password.value === '123456') {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          
-          const userData = {
+        const response = await axios.get(authEndpoint, {
+          params: {
+            privateKey,
             username: username.value,
-            role: 'admin',
-            token: 'mock-token-' + Date.now(),
-            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-          }
-          localStorage.setItem('user', JSON.stringify(userData))
+            password: password.value
+          },
+          headers: {
+            Accept: '*/*'
+          },
+          withCredentials: false
+        })
 
-          window.dispatchEvent(new CustomEvent('user-logged-in', { detail: userData }))
-
-          toast.success('Đăng nhập thành công!', {
-            timeout: 3000,
-            closeOnClick: true,
-            pauseOnFocusLoss: true,
-            pauseOnHover: true,
-            draggable: true,
-            draggablePercent: 0.6,
-            showCloseButtonOnHover: false,
-            hideProgressBar: false,
-            closeButton: "button",
-            icon: true,
-            rtl: false
-          })
-
-          setTimeout(() => {
-            try {
-              // Lấy URL trước đó từ localStorage hoặc chuyển về trang chủ nếu không có
-              const previousPath = localStorage.getItem('previousPath') || '/'
-              router.replace(previousPath)
-              localStorage.removeItem('previousPath') // Xóa URL trước đó sau khi sử dụng
-            } catch (err) {
-              console.error('Navigation error:', err)
-              window.location.href = '/'
-            }
-          }, 1000)
-        } else {
-          error.value = 'Tên đăng nhập hoặc mật khẩu không đúng'
-          toast.error('Tên đăng nhập hoặc mật khẩu không đúng', {
-            timeout: 3000,
-            closeOnClick: true,
-            pauseOnFocusLoss: true,
-            pauseOnHover: true,
-            draggable: true,
-            draggablePercent: 0.6,
-            showCloseButtonOnHover: false,
-            hideProgressBar: false,
-            closeButton: "button",
-            icon: true,
-            rtl: false
-          })
+        const payload = response.data || {}
+        if (payload.error) {
+          throw new Error(payload.error)
         }
+        const userName = payload.userName || payload.username
+        const name = payload.name || payload.fullName || userName
+        const enabled = String(payload.enabled || '').toLowerCase() === 'true'
+
+        if (!userName || !enabled) {
+          throw new Error('Tên đăng nhập hoặc trạng thái tài khoản không hợp lệ')
+        }
+ 
+
+        const userData = {
+          username: userName,
+          name,
+          enabled,
+          token: userName,
+          raw: payload,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        }
+        try {
+          localStorage.setItem('user', JSON.stringify(userData))
+          window.dispatchEvent(new CustomEvent('user-logged-in', { detail: userData }))
+        } catch (storageErr) {
+          console.warn('Storage not available, session will not persist:', storageErr)
+        }
+
+        toast.success('Đăng nhập thành công!', {
+          timeout: 3000,
+          closeOnClick: true,
+          pauseOnFocusLoss: true,
+          pauseOnHover: true,
+          draggable: true,
+          draggablePercent: 0.6,
+          showCloseButtonOnHover: false,
+          hideProgressBar: false,
+          closeButton: "button",
+          icon: true,
+          rtl: false
+        })
+
+        setTimeout(() => {
+          try {
+            const previousPath = localStorage.getItem('previousPath') || '/'
+            router.replace(previousPath)
+            localStorage.removeItem('previousPath')
+          } catch (err) {
+            console.error('Navigation error:', err)
+            window.location.href = '/'
+          }
+        }, 600)
       } catch (err) {
-        error.value = 'Có lỗi xảy ra, vui lòng thử lại'
-        toast.error('Có lỗi xảy ra, vui lòng thử lại', {
+        const serverMsg = err?.response?.data?.error || err?.message
+        error.value = serverMsg || 'Có lỗi xảy ra, vui lòng thử lại'
+        toast.error(error.value, {
           timeout: 3000,
           closeOnClick: true,
           pauseOnFocusLoss: true,
