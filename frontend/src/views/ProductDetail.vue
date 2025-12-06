@@ -4,7 +4,7 @@
     <nav class="breadcrumb-nav mb-4">
       <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-        <li class="breadcrumb-item"><a href="/catalog">{{ product.productType }}</a></li>
+        <li class="breadcrumb-item"><a :href="`/danh-muc?productType=${product.specifications['Loại sản phẩm']}`">{{ product.specifications['Loại sản phẩm'] }}</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
       </ol>
     </nav>
@@ -86,8 +86,15 @@
         <!-- Price section -->
         <div class="product-price-wrapper mb-3" v-if="isLoggedIn">
           <div class="product-price">
-            <div class="current-price">{{ product.price }}</div>
-            <div class="original-price">{{ product.originalPrice }}</div>
+            <div class="current-price">
+              {{ formatPrice(product.displayPriceValue ?? 0) }}
+            </div>
+            <div
+              class="original-price"
+              v-if="product.isSale && product.priceBaseValue !== null"
+            >
+              {{ formatPrice(product.priceBaseValue) }}
+            </div>
           </div>
           <div class="price-note">Giá áp dụng tại HCM, chưa bao gồm phí vận chuyển</div>
         </div>
@@ -135,17 +142,17 @@
         <!-- Additional Product Info -->
         <div class="additional-info">
           <div class="info-item">
-            <i class="fi fi-br-ruler"></i>
+            <i class="fi fi-br-category-alt"></i>
             <div class="info-content">
-              <div class="info-label">Kích thước</div>
-              <div class="info-value">{{ product.specifications['Kích thước'] }}</div>
+              <div class="info-label">Tên Nhóm VTHH</div>
+              <div class="info-value">{{ product.specifications['Tên Nhóm VTHH'] }}</div>
             </div>
           </div>
           <div class="info-item">
             <i class="fi fi-br-palette"></i>
             <div class="info-content">
               <div class="info-label">Màu sắc</div>
-              <div class="info-value">{{ product.specifications['Màu sắc'] }}</div>
+              <div class="info-value">{{ product.specifications['Tên Màu Sắc'] }}</div>
             </div>
           </div>
           <div class="info-item">
@@ -348,17 +355,18 @@
 import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { useToast } from 'vue-toastification';
-import { useHead } from '@vueuse/head';
 import { productService } from '@/services/productService';
 import fieldDefinitions from '@/assets/product_field_definitions.json';
+import { updateSeoMeta } from '@/utils/seo';
 
 export default {
   name: 'ProductDetail',
   setup() {
     const toast = useToast();
-    // set title
-    useHead({
-      title: 'Vietceramics - Chi tiết sản phẩm'
+    updateSeoMeta({
+      title: 'Vietceramics | Chi tiết sản phẩm',
+      description: 'Đang tải thông tin sản phẩm chính hãng từ Vietceramics.',
+      type: 'product'
     });
     return { toast };
   },
@@ -478,30 +486,28 @@ export default {
     },
     // Tính tổng giá combo
     selectedComboTotal() {
-      if (!this.product?.comboItems) return '0đ';
-      const mainProductPrice = parseInt(this.product.price.replace(/[^\d]/g, ''));
-      const comboItemsTotal = this.product.comboItems
+      if (!this.product) return '0đ';
+      const comboItems = this.product.comboItems || [];
+      const mainProductPrice = this.product.displayPriceValue ?? 0;
+      const comboItemsTotal = comboItems
         .filter(item => item.selected)
-        .reduce((sum, item) => {
-          const price = parseInt(item.price.replace(/[^\d]/g, ''));
-          return sum + price;
-        }, 0);
+        .reduce((sum, item) => sum + this.parsePrice(item.price), 0);
       return this.formatPrice(mainProductPrice + comboItemsTotal);
     },
     // Tính số tiền tiết kiệm khi mua combo
     selectedComboSave() {
-      if (!this.product?.comboItems) return '0đ';
-      const mainProductOriginalPrice = parseInt(this.product.originalPrice.replace(/[^\d]/g, ''));
-      const comboItemsOriginalTotal = this.product.comboItems
-        .filter(item => item.selected)
-        .reduce((sum, item) => {
-          const price = parseInt(item.originalPrice.replace(/[^\d]/g, ''));
-          return sum + price;
-        }, 0);
+      if (!this.product) return '0đ';
+      const comboItems = this.product.comboItems || [];
+      const comboItemsSelected = comboItems.filter(item => item.selected);
+      const mainProductOriginalPrice = this.product.priceBaseValue ?? this.product.displayPriceValue ?? 0;
+      const comboItemsOriginalTotal = comboItemsSelected
+        .reduce((sum, item) => sum + this.parsePrice(item.originalPrice), 0);
+      const comboItemsSelectedTotal = comboItemsSelected
+        .reduce((sum, item) => sum + this.parsePrice(item.price), 0);
       const totalOriginal = mainProductOriginalPrice + comboItemsOriginalTotal;
-      const total = parseInt(this.selectedComboTotal.replace(/[^\d]/g, ''));
+      const total = (this.product.displayPriceValue ?? 0) + comboItemsSelectedTotal;
       const save = totalOriginal - total;
-      return this.formatPrice(save);
+      return this.formatPrice(save > 0 ? save : 0);
     },
     // Kiểm tra trạng thái đăng nhập
     isLoggedIn() {
@@ -579,10 +585,16 @@ if (
 
         // Tải hình ảnh sau khi có thông tin sản phẩm
         await this.loadImages();
+        this.applyProductSeo();
       } catch (error) {
         console.error('Error fetching product:', error);
         this.error = 'Không thể tải thông tin sản phẩm';
         this.toast.error(this.error);
+        updateSeoMeta({
+          title: 'Vietceramics | Không tìm thấy sản phẩm',
+          description: 'Sản phẩm có thể đã bị gỡ hoặc không còn được phân phối.',
+          type: 'product'
+        });
       } finally {
         this.loading = false;
       }
@@ -1006,6 +1018,14 @@ if (
       this.touchStartY = 0;
       this.touchEndY = 0;
     },
+    parsePrice(value) {
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const numeric = Number(value.replace(/[^\d.-]/g, ''));
+        return Number.isNaN(numeric) ? 0 : numeric;
+      }
+      return 0;
+    },
     formatPrice(value) {
       const number = Number(value) || 0;
       return number.toLocaleString('vi-VN') + 'đ';
@@ -1015,6 +1035,33 @@ if (
     },
     handleThumbLoad(index) {
       this.thumbLoaded = { ...this.thumbLoaded, [index]: true };
+    },
+    applyProductSeo() {
+      if (!this.product) return;
+      const collectionName = this.product.collectionName || this.product.productType || 'Vietceramics';
+      const specColor = this.product.specifications?.['Màu sắc'];
+      const specSize = this.product.specifications?.['Kích thước'];
+      const featureHighlights = [
+        this.product.productType,
+        collectionName,
+        specColor,
+        specSize
+      ].filter(Boolean).join(', ');
+      const description = this.product.shortDescription ||
+        `Khám phá ${this.product.name} (mã ${this.product.itemCode}) - ${collectionName} chính hãng tại Vietceramics.`;
+      const metaImage = this.images[0] ||
+        this.images_perspective[0] ||
+        this.images_real[0] ||
+        null;
+
+      updateSeoMeta({
+        title: `${this.product.name} | Vietceramics`,
+        description,
+        keywords: `Vietceramics,${featureHighlights}`,
+        image: metaImage,
+        url: window.location.href,
+        type: 'product'
+      });
     }
   },
   // Lifecycle hooks

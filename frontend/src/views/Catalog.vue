@@ -4,92 +4,163 @@
       <!-- Bộ lọc -->
       <div class="col-3 d-none d-xxl-block">
         <div class="filters-section">
-          <h3>Bộ lọc</h3> 
-          <!-- Danh mục 3 cấp -->
+          <div class="filters-header d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">Bộ lọc</h3>
+            <button
+              v-if="hasActiveFilters"
+              type="button"
+              class="reset-filter-btn"
+              @click="clearAllFilters"
+            >
+              Xóa bộ lọc
+            </button>
+          </div>
           <div class="filter-group mb-4">
             <h4>Danh mục sản phẩm</h4>
-            <div class="category-filter">
-              <!-- Cấp 1 -->
-              <div class="category-level mb-2" v-for="level1 in filters.categories" :key="level1.id">
-                <div class="category-header" @click="toggleCategory(level1.id)">
-                  <input type="checkbox" :id="'cat-' + level1.id" v-model="selectedFilters.categories" :value="level1.id">
-                  <label :for="'cat-' + level1.id">{{ level1.name }}</label>
-                  <i class="fi" :class="level1.expanded ? 'fi-br-angle-down' : 'fi-br-angle-right'"></i>
+            <div class="category-tabs">
+              <button
+                v-for="category in filters.categories"
+                :key="category.id"
+                type="button"
+                class="category-tab"
+                :class="{ active: activeCategoryId === category.id }"
+                @click="setCategoryFilter(category.id)"
+              >
+                <div class="category-tab-image">
+                  <img :src="category.image" :alt="category.name" loading="lazy">
                 </div>
-                
-                <!-- Cấp 2 -->
-                <div class="category-level-2 ms-3" v-if="level1.expanded">
-                  <div class="category-level mb-2" v-for="level2 in level1.children" :key="level2.id">
-                    <div class="category-header" @click="toggleCategory(level2.id)">
-                      <input type="checkbox" :id="'cat-' + level2.id" v-model="selectedFilters.categories" :value="level2.id">
-                      <label :for="'cat-' + level2.id">{{ level2.name }}</label>
-                      <i class="fi" :class="level2.expanded ? 'fi-br-angle-down' : 'fi-br-angle-right'"></i>
-                    </div>
-                    
-                    <!-- Cấp 3 -->
-                    <div class="category-level-3 ms-3" v-if="level2.expanded">
-                      <div class="form-check" v-for="level3 in level2.children" :key="level3.id">
-                        <input class="form-check-input" type="checkbox" :id="'cat-' + level3.id" 
-                          v-model="selectedFilters.categories" :value="level3.id">
-                        <label class="form-check-label" :for="'cat-' + level3.id">
-                          {{ level3.name }}
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <div class="category-tab-title">{{ category.name }}</div>
+              </button>
             </div>
           </div>
 
-          <!-- Không gian sử dụng -->
-          <div class="filter-group mb-4">
-            <h4>Không gian sử dụng</h4>
-            <div class="form-check" v-for="space in filters.spaces" :key="space.id">
-              <input class="form-check-input" type="checkbox" :id="space.id" v-model="selectedFilters.spaces"
-                :value="space.id">
-              <label class="form-check-label" :for="space.id">
-                {{ space.name }}
-              </label>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="displayedCategories.length"
+          >
+            <h5>Danh mục nổi bật</h5>
+            <div class="sub-category-list">
+              <button
+                v-for="category in displayedCategories"
+                :key="category.id"
+                type="button"
+                class="sub-category-pill"
+                :class="{ 
+                  active: selectedCategoryId === category.id,
+                  'span-2': shouldSpanCategory(category.name)
+                }"
+                @click="selectCategory(category.id)"
+              >
+                {{ category.name }}
+              </button>
+              <button
+                v-if="categoryHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('categories')"
+              >
+                <i class="fi" :class="isCategoryExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isCategoryExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
             </div>
           </div>
 
-          <!-- Kích thước -->
-          <div class="filter-group mb-4">
-            <h4>Kích thước</h4>
-            <div class="form-check" v-for="size in filters.sizes" :key="size.id">
-              <input class="form-check-input" type="checkbox" :id="size.id" v-model="selectedFilters.sizes"
-                :value="size.id">
-              <label class="form-check-label" :for="size.id">
-                {{ size.name }}
-              </label>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="isTileCategory && displayedCollections.length"
+          >
+            <h5>Bộ sưu tập nổi bật</h5>
+            <div class="sub-category-list">
+              <button
+                v-for="child in displayedCollections"
+                :key="child.id"
+                type="button"
+                class="sub-category-pill"
+                :class="{ active: selectedCollectionId === child.id }"
+                @click="selectSubCategory(child.id)"
+              >
+                {{ child.name }}
+              </button>
+              <button
+                v-if="collectionHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('collections')"
+              >
+                <i class="fi" :class="isCollectionExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isCollectionExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
             </div>
           </div>
 
-          <!-- Màu sắc -->
-          <div class="filter-group mb-4">
-            <h4>Màu sắc</h4>
-            <div class="color-options">
-              <div v-for="color in filters.colors" :key="color.id" class="color-option"
-                :class="{ active: selectedFilters.colors.includes(color.id) }"
-                :style="{ backgroundColor: color.code }" @click="toggleColor(color.id)"></div>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="displayedColors.length"
+          >
+            <h5>Bảng màu gợi ý</h5>
+            <div class="filter-chip-list">
+              <button
+                v-for="color in displayedColors"
+                :key="color.id"
+                type="button"
+                class="filter-chip color-chip"
+                :class="{ active: selectedColorId === color.id }"
+                @click="selectColor(color.id)"
+              >
+                <span class="color-swatch" :style="{ backgroundColor: color.swatch }"></span>
+                <span>{{ color.name }}</span>
+              </button>
+              <button
+                v-if="colorHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('colors')"
+              >
+                <i class="fi" :class="isColorExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isColorExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
             </div>
           </div>
 
-          <!-- Khoảng giá -->
-          <div class="filter-group mb-4">
-            <h4>Khoảng giá</h4>
-            <div class="price-range-slider">
-              <div class="d-flex justify-content-between mb-2">
-                <span class="price-value">{{ formatPrice(priceRange[0]) }}</span>
-                <span class="price-value">{{ formatPrice(priceRange[1]) }}</span>
-              </div>
-              <div class="range-slider">
-                <input type="range" class="form-range" min="0" max="2000000000" step="1000000" 
-                  v-model="priceRange[0]" @input="updatePriceRange">
-                <input type="range" class="form-range" min="0" max="2000000000" step="1000000" 
-                  v-model="priceRange[1]" @input="updatePriceRange">
-              </div>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="displayedSizes.length"
+          >
+            <h5>Kích thước phổ biến</h5>
+            <div class="filter-chip-list">
+              <button
+                v-for="size in displayedSizes"
+                :key="size.id"
+                type="button"
+                class="filter-chip size-chip"
+                :class="{ active: selectedSizeId === size.id }"
+                @click="selectSize(size.id)"
+              >
+                <span class="size-label">{{ size.name }}</span>
+              </button>
+              <button
+                v-if="sizeHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('sizes')"
+              >
+                <i class="fi" :class="isSizeExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isSizeExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-group mb-4 sub-category-panel price-filter-group">
+            <h5>Khoảng giá (VND)</h5>
+            <div class="price-inputs">
+              <input type="number" class="form-control" placeholder="Từ" min="0" v-model="priceInputs.from">
+              <span class="price-separator">-</span>
+              <input type="number" class="form-control" placeholder="Đến" min="0" v-model="priceInputs.to">
+              <button class="btn btn-outline-primary" @click="applyPriceFilter">Áp dụng</button>
+            </div>
+            <div class="form-check form-switch sale-toggle">
+              <input class="form-check-input" type="checkbox" id="sale-only-toggle" v-model="saleOnly">
+              <label class="form-check-label" for="sale-only-toggle">Chỉ hiển thị sản phẩm giảm giá</label>
             </div>
           </div>
         </div>
@@ -104,10 +175,10 @@
         </button>
 
         <div class="products-header d-flex justify-content-between align-items-center mb-4">
-          <div class="results-count">
-            <div v-if="loading">Đang tải sản phẩm...</div>
-            <div v-else>Hiển thị {{ products.length }} sản phẩm</div>
-          </div>
+            <div class="results-count">
+              <div v-if="loading">Đang tải sản phẩm...</div>
+              <div v-else>Hiển thị {{ totalRecords || products.length }} sản phẩm</div>
+            </div>
           <div class="sort-options">
             <select class="form-select" v-model="sortOption">
               <option value="newest">Mới nhất</option>
@@ -132,36 +203,64 @@
         </div>
 
         <!-- Product list -->
-        <div v-else class="row g-3">
-          <div v-for="product in sortedProducts" :key="product.id" class="col-6 col-md-4 col-lg-3 col-xxl-3">
-            <div class="card h-100">
-              <div class="image-wrapper">
-                <img 
-                  v-lazy="product.image" 
-                  class="card-img-top main-img"
-                  :alt="product.name"
-                  :data-product-id="product.id"
-                  @error="handleImageError($event, product.id)"
-                  @load="handleImageLoad($event)"
-                  loading="lazy"
-                >
-                <div class="image-loading-overlay" v-show="!imageLoaded[product.id]">
-                  <div class="spinner-border spinner-border-sm text-primary"></div>
+        <div v-else>
+          <div v-if="products.length === 0" class="no-products-alert">
+            <div class="no-products-icon">
+              <i class="fi fi-br-search-alt"></i>
+            </div>
+            <h5>Chưa có sản phẩm phù hợp</h5>
+            <p>Vui lòng điều chỉnh bộ lọc hoặc thử lại với lựa chọn khác.</p>
+            <button class="reset-filter-btn" @click="clearAllFilters">Đặt lại bộ lọc</button>
+          </div>
+          <div v-else class="row g-3">
+            <div v-for="product in sortedProducts" :key="product.itemCode || product.id" class="col-6 col-md-4 col-lg-3 col-xxl-3">
+              <div class="card h-100">
+                <div class="image-wrapper">
+                  <span v-if="product.isSale" class="sale-badge">Sale</span>
+                  <img 
+                    v-lazy="product.image" 
+                    class="card-img-top main-img"
+                    :alt="product.name"
+                    :data-product-id="product.id"
+                    @error="handleImageError($event, product.id)"
+                    @load="handleImageLoad($event)"
+                    loading="lazy"
+                  >
+                  <div class="image-loading-overlay" v-show="!imageLoaded[product.id]">
+                    <div class="image-skeleton-shimmer"></div>
+                  </div>
                 </div>
-              </div>
-              <div class="card-body">
-                <h5 class="card-title">{{ product.name }}</h5>
-                <p class="card-text">Mã: {{ product.itemCode }}</p>
-                <router-link :to="'/san-pham/' + product.id" class="btn btn-primary">
-                  Xem chi tiết
-                </router-link>
+                <div class="card-body">
+                  <h5 class="card-title">{{ product.name }}</h5>
+                  <p class="card-text">Mã: {{ product.itemCode }}</p>
+                  <div class="price-block">
+                    <span 
+                      v-if="product.isSale && product.priceSale !== null" 
+                      class="price-sale"
+                    >
+                      {{ formatPrice(product.priceSale) }}
+                    </span>
+                    <span 
+                      v-if="product.priceBase !== null" 
+                      :class="['price-base', { 'text-decoration-line-through': product.isSale && product.priceSale !== null }]"
+                    >
+                      {{ formatPrice(product.priceBase) }}
+                    </span>
+                  </div>
+                  <router-link
+                    class="btn btn-primary"
+                    :to="{ name: 'product-detail', params: { id: product.itemCode || product.id } }"
+                  >
+                    Xem chi tiết
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Phân trang -->
-        <nav class="mt-4">
+        <nav class="mt-4" v-if="products.length">
           <ul class="pagination justify-content-center custom-pagination">
             <li class="page-item" :class="{ disabled: currentPage === 1 }">
               <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)">
@@ -187,104 +286,167 @@
       <div class="mobile-filter-content">
         <button class="btn btn-danger mb-3" @click="showMobileFilter = false">Đóng</button>
         <div class="filters-section">
-          <h3>Bộ lọc</h3>
-
-          <!-- Loại sản phẩm -->
-          <div class="filter-group mb-4">
-            <h4>Loại sản phẩm</h4>
-            <div class="form-check" v-for="type in filters.productTypes" :key="type.id">
-              <input class="form-check-input" type="checkbox" :id="'mobile-' + type.id"
-                v-model="selectedFilters.productTypes" :value="type.id">
-              <label class="form-check-label" :for="'mobile-' + type.id">
-                {{ type.name }}
-              </label>
-            </div>
+          <div class="filters-header d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">Bộ lọc</h3>
+            <button
+              v-if="hasActiveFilters"
+              type="button"
+              class="reset-filter-btn"
+              @click="clearAllFilters"
+            >
+              Xóa bộ lọc
+            </button>
           </div>
 
-          <!-- Danh mục 3 cấp -->
+          <!-- (Removed) Loại sản phẩm - simplified to categories only -->
+
           <div class="filter-group mb-4">
             <h4>Danh mục sản phẩm</h4>
-            <div class="category-filter">
-              <!-- Cấp 1 -->
-              <div class="category-level mb-2" v-for="level1 in filters.categories" :key="level1.id">
-                <div class="category-header" @click="toggleCategory(level1.id)">
-                  <input type="checkbox" :id="'mobile-cat-' + level1.id" v-model="selectedFilters.categories" :value="level1.id">
-                  <label :for="'mobile-cat-' + level1.id">{{ level1.name }}</label>
-                  <i class="fi" :class="level1.expanded ? 'fi-br-angle-down' : 'fi-br-angle-right'"></i>
+            <div class="category-tabs">
+              <button
+                v-for="category in filters.categories"
+                :key="category.id"
+                type="button"
+                class="category-tab"
+                :class="{ active: activeCategoryId === category.id }"
+                @click="setCategoryFilter(category.id)"
+              >
+                <div class="category-tab-image">
+                  <img :src="category.image" :alt="category.name" loading="lazy">
                 </div>
-                
-                <!-- Cấp 2 -->
-                <div class="category-level-2 ms-3" v-if="level1.expanded">
-                  <div class="category-level mb-2" v-for="level2 in level1.children" :key="level2.id">
-                    <div class="category-header" @click="toggleCategory(level2.id)">
-                      <input type="checkbox" :id="'mobile-cat-' + level2.id" v-model="selectedFilters.categories" :value="level2.id">
-                      <label :for="'mobile-cat-' + level2.id">{{ level2.name }}</label>
-                      <i class="fi" :class="level2.expanded ? 'fi-br-angle-down' : 'fi-br-angle-right'"></i>
-                    </div>
-                    
-                    <!-- Cấp 3 -->
-                    <div class="category-level-3 ms-3" v-if="level2.expanded">
-                      <div class="form-check" v-for="level3 in level2.children" :key="level3.id">
-                        <input class="form-check-input" type="checkbox" :id="'mobile-cat-' + level3.id" 
-                          v-model="selectedFilters.categories" :value="level3.id">
-                        <label class="form-check-label" :for="'mobile-cat-' + level3.id">
-                          {{ level3.name }}
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <div class="category-tab-title">{{ category.name }}</div>
+              </button>
             </div>
           </div>
 
-          <!-- Không gian sử dụng -->
-          <div class="filter-group mb-4">
-            <h4>Không gian sử dụng</h4>
-            <div class="form-check" v-for="space in filters.spaces" :key="space.id">
-              <input class="form-check-input" type="checkbox" :id="'mobile-' + space.id"
-                v-model="selectedFilters.spaces" :value="space.id">
-              <label class="form-check-label" :for="'mobile-' + space.id">
-                {{ space.name }}
-              </label>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="displayedCategories.length"
+          >
+            <h5>Danh mục nổi bật</h5>
+            <div class="sub-category-list">
+              <button
+                v-for="category in displayedCategories"
+                :key="category.id"
+                type="button"
+                class="sub-category-pill"
+                :class="{ 
+                  active: selectedCategoryId === category.id,
+                  'span-2': shouldSpanCategory(category.name)
+                }"
+                @click="selectCategory(category.id)"
+              >
+                {{ category.name }}
+              </button>
+              <button
+                v-if="categoryHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('categories')"
+              >
+                <i class="fi" :class="isCategoryExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isCategoryExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
             </div>
           </div>
 
-          <!-- Kích thước -->
-          <div class="filter-group mb-4">
-            <h4>Kích thước</h4>
-            <div class="form-check" v-for="size in filters.sizes" :key="size.id">
-              <input class="form-check-input" type="checkbox" :id="'mobile-' + size.id"
-                v-model="selectedFilters.sizes" :value="size.id">
-              <label class="form-check-label" :for="'mobile-' + size.id">
-                {{ size.name }}
-              </label>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="isTileCategory && displayedCollections.length"
+          >
+            <h5>Bộ sưu tập nổi bật</h5>
+            <div class="sub-category-list">
+              <button
+                v-for="child in displayedCollections"
+                :key="child.id"
+                type="button"
+                class="sub-category-pill"
+                :class="{ active: selectedCollectionId === child.id }"
+                @click="selectSubCategory(child.id)"
+              >
+                {{ child.name }}
+              </button>
+              <button
+                v-if="collectionHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('collections')"
+              >
+                <i class="fi" :class="isCollectionExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isCollectionExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
             </div>
           </div>
 
-          <!-- Màu sắc -->
-          <div class="filter-group mb-4">
-            <h4>Màu sắc</h4>
-            <div class="color-options">
-              <div v-for="color in filters.colors" :key="color.id" class="color-option"
-                :class="{ active: selectedFilters.colors.includes(color.id) }"
-                :style="{ backgroundColor: color.code }" @click="toggleColor(color.id)"></div>
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="displayedColors.length"
+          >
+            <h5>Bảng màu gợi ý</h5>
+            <div class="filter-chip-list">
+              <button
+                v-for="color in displayedColors"
+                :key="color.id"
+                type="button"
+                class="filter-chip color-chip"
+                :class="{ active: selectedColorId === color.id }"
+                @click="selectColor(color.id)"
+              >
+                <span class="color-swatch" :style="{ backgroundColor: color.swatch }"></span>
+                <span>{{ color.name }}</span>
+              </button>
+              <button
+                v-if="colorHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('colors')"
+              >
+                <i class="fi" :class="isColorExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isColorExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
             </div>
           </div>
 
-          <!-- Khoảng giá -->
-          <div class="filter-group mb-4">
-            <h4>Khoảng giá</h4>
-            <div class="price-range-slider">
-              <div class="d-flex justify-content-between mb-2">
-                <span class="price-value">{{ formatPrice(priceRange[0]) }}</span>
-                <span class="price-value">{{ formatPrice(priceRange[1]) }}</span>
-              </div>
-              <div class="range-slider">
-                <input type="range" class="form-range" min="0" max="2000000000" step="1000000" 
-                  v-model="priceRange[0]" @input="updatePriceRange">
-                <input type="range" class="form-range" min="0" max="2000000000" step="1000000" 
-                  v-model="priceRange[1]" @input="updatePriceRange">
+          <div 
+            class="filter-group mb-4 sub-category-panel" 
+            v-if="displayedSizes.length"
+          >
+            <h5>Kích thước phổ biến</h5>
+            <div class="filter-chip-list">
+              <button
+                v-for="size in displayedSizes"
+                :key="size.id"
+                type="button"
+                class="filter-chip size-chip"
+                :class="{ active: selectedSizeId === size.id }"
+                @click="selectSize(size.id)"
+              >
+                <span class="size-label">{{ size.name }}</span>
+              </button>
+              <button
+                v-if="sizeHasMore"
+                type="button"
+                class="sub-category-more"
+                @click="toggleFilterSection('sizes')"
+              >
+                <i class="fi" :class="isSizeExpanded ? 'fi-br-minus-small' : 'fi-br-plus-small'"></i>
+                {{ isSizeExpanded ? 'Thu gọn' : 'Xem thêm' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-group mb-4 sub-category-panel price-filter-group">
+            <h5>Khoảng giá (VND)</h5>
+            <div class="price-inputs">
+              <input type="number" class="form-control" placeholder="Từ" min="0" v-model="priceInputs.from">
+              <span class="price-separator">-</span>
+              <input type="number" class="form-control" placeholder="Đến" min="0" v-model="priceInputs.to">
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <button class="btn btn-outline-primary flex-grow-1 me-2" @click="applyPriceFilter">Áp dụng</button>
+              <div class="form-check form-switch sale-toggle m-0">
+                <input class="form-check-input" type="checkbox" id="sale-only-toggle-mobile" v-model="saleOnly">
+                <label class="form-check-label" for="sale-only-toggle-mobile">Sale</label>
               </div>
             </div>
           </div>
@@ -296,6 +458,585 @@
 
 <script>
 import axios from 'axios'
+import { updateSeoMeta } from '@/utils/seo'
+
+const rawColorData = `
+Màu nâu nhạt
+Màu đen vân đá,Light Gold
+Màu vàng chanh
+Màu xanh dương biển sâu
+Trắng,Xám
+Mạ vàng 24K
+ĐEN,XÁM ĐẬM
+Nikel xước
+Cam
+Màu xám
+XANH ĐẬM
+Màu xanh lam băng
+màu nâu họa tiết vân gỗ + xanh cây thùa
+màu gỗ Wenge
+Màu xanh da trời
+Mạ crôm
+Trắng,Cam
+Đen,Xám
+Trắng kem
+màu đồng cổ xưa
+crôm,Xám
+Sứ màu nâu hạnh nhân
+Vàng trầm / đen mờ
+Trắng,Màu hồng
+màu lá vàng
+Trắng,Hồng
+Cam ,Đen mờ
+Vàng,Xanh dương
+Xám than chì vân gỗ
+Màu đen tuyền
+Màu chì
+Màu lá bạc,Màu trắng thủy tinh
+Xanh dương
+Màu vàng mờ
+KEM ĐẬM
+Nhiều màu
+Trắng
+Brushed Chrome
+Màu nâu
+Sứ màu xám
+Màu trắng thủy tinh,Light Gold
+Mạ màu đen mờ
+Màu đồng đỏ
+màu đen kim loại (nhám)
+Màu trắng bóng
+màu sắt mờ
+màu sắt xước, sắt bóng
+Màu xanh Coral
+Màu trắng hoa tuyết nhung
+XÁM NHẠT
+màu màu niken
+Màu nâu mờ
+Tên Màu Sắc
+Màu vàng,Trắng
+màu nâu gỉ sắt
+Vàng đồng
+crôm xước
+Light Gold,Màu trắng thủy tinh
+Màu niken xước mờ
+Màu trắng thủy tinh
+Vàng sáng
+Màu nâu họa tiết vân gỗ + hồng phấn
+crôm,Đen mờ
+XANH DƯƠNG; XANH LÁ
+Màu trắng chấm nhỏ
+màu đồng thiếc ấm xước
+Màu nhôm cổ xưa
+XÁM ĐẬM
+Xám than đá
+Màu crôm,Màu trắng thủy tinh
+Nâu hạt dẻ/trắng xám đá cẩm thạch,Sứ màu trắng
+Đen,Trắng,Xám
+Màu trắng vân đá,Light Gold
+White Alpin
+Màu đen mờ,Màu trắng thủy tinh
+Đen,Vàng
+Trắng mờ
+Sứ nâu gỗ
+màu đỏ san hô
+Màu trắng mờ
+Màu Lá Nhôm Cổ
+Sứ màu hạnh nhân
+Màu niken mịn/ Màu đen
+,Đen,Trắng
+Đen,Trắng
+màu đồng đỏ xước
+,Trắng
+Màu xám sáng
+Crôm
+màu đồng thiếc ấm
+Màu đen bóng thủy tinh
+crôm,Chrome
+Xám bóng
+Vàng xước
+NULL
+Sứ màu kem
+màu vàng đất
+đồng đỏ xước
+Vàng,Xanh lá
+chrome matt
+màu nâu họa tiết vân gỗ + vàng đất
+Sứ màu trắng,Nâu hạt dẻ/trắng xám đá cẩm thạch
+White Alpin CeramicPlus
+Màu trắng vân đá
+Màu trắng/Màu đồng đỏ
+Màu trắng xám
+Màu trắng vân đá,Màu trắng,Màu niken mịn
+Màu đen huyền
+màu vàng đồng
+Trắng,Vàng,Xanh dương
+Màu nâu đen
+Xanh biển
+Vàng
+Trắng,Xanh lá,Tím
+Màu Lá Nhôm Cổ,Màu đen huyền,Màu đen vân đá
+Gray Pearl,crôm
+Sứ đen gỗ mun
+Trắng,Đỏ,Xanh dương
+Màu trắng,Polished Nickel
+Đỏ trầm
+màu sắt xước
+Màu xám đen
+Màu hồng phấn
+XANH NHẠT
+Hồng phấn
+Mạ niken xước mờ
+Frost
+Trắng,Vàng
+màu trắng
+Nâu,Màu trắng thủy tinh
+Màu bạch kim
+Màu trắng đục
+Xanh dương,Trắng
+Màu đen xước
+ĐA SẮC
+Trắng,Xanh lá
+Vàng chanh
+Mạ đen mờ
+Màu xám kim loại
+Đen,Đỏ,Trắng
+Màu xanh hổ phách
+ĐEN,KEM
+màu đồng đỏ (PVD)
+Mạ vàng 14K
+Đỏ
+NÂU ĐẬM
+Màu xám đậm
+Đen,màu đồng đỏ xước
+HỒNG
+American Walnut
+Không phân loại
+màu niken
+Màu vàng nghệ
+Màu đen
+màu đen mờ / màu đen kim loại
+Màu niken bóng
+Màu xanh chi thùa
+Sứ màu đen bóng
+Màu trắng bóng,Màu đồng đỏ
+Màu đen huyền,Đen,Nâu
+Đen,Crôm
+Màu thép không gỉ
+Màu xanh lục rừng rậm
+Màu xanh riêu
+Màu vàng nhạt/Màu đen
+Đen đậm
+Màu trắng bóng,Màu crôm
+Sứ siêu trắng
+màu đen sơn tĩnh điện
+KEM
+,Đen,Vàng
+màu đen sơn tĩnh điện / màu crôm
+Màu vân gỗ đen
+Màu xám bóng
+Cam,Crôm
+Đen
+Màu đen huyền/Trắng sáng
+màu kim lại đen xước
+màu niken xước
+Màu đồng xước
+Trắng,màu đồng đỏ
+Trắng,Xanh dương
+,Trắng,Crôm
+Xanh lá sẫm
+Màu crôm mờ
+Xám,Trắng
+TÍM
+Màu đồng
+Màu trắng,Light Gold
+Màu trắng bóng,Màu vàng
+Màu xanh cổ vịt 
+Đỏ rượu
+Xanh da trời
+NÂU
+màu đen đá cẩm thạch Marquina
+Màu đen vân đá,Màu crôm
+,Trắng,Xanh dương
+màu vàng đồng xước
+Cam,Đen
+Màu crôm,Màu trắng
+Xanh lá
+Màu nâu đỏ nhạt
+Chrome
+White Matt
+Trắng,Tím
+Màu niken/ Màu đen
+Màu niken mịn
+Trắng,Đỏ
+Nâu sáng gỗ Elm
+brushed stainless steel
+niken xước
+Trắng,màu đồng đỏ (PVD)
+Vàng,crôm
+Crôm,Hồng
+màu khói (mờ)
+Màu xanh dương đậm
+Màu xám be
+crôm,Trắng
+Trắng,crôm
+,Trắng,Đen
+Màu đỏ đô
+màu kim loại đen
+Vàng nhạt
+màu đá River Stone
+Trắng,Xanh lá,Vàng
+màu sắt bóng,Xám
+Hồng be
+Màu crôm
+Đen mờ
+Nâu sẫm vân gỗ
+Màu crom
+màu nâu họa tiết vân gỗ + đỏ san hô
+Đen,Đỏ
+Đen,Cam
+Màu niken,Màu trắng
+Bạc
+màu sắt bóng
+Sứ nâu hạnh nhân
+Sứ màu trắng
+Màu nâu đất 
+Nâu gỗ nhạt
+Xám
+Mạ vàng 14K,Màu trắng
+đồng thiếc ấm xước
+Màu Crôm,Trắng
+Màu xanh cây thùa
+Màu trắng,Màu crôm
+Màu trắng vân đá,Màu trắng,Light Gold
+Màu đồng đỏ,Màu đen mờ
+Màu đen/Màu đồng đỏ
+màu kim loại đen xước
+Màu trắng,Màu crôm,Màu trắng bóng
+XANH LÁ NHẠT
+màu trắng đá Calacatta
+màu vàng xước
+Đỏ,Đen
+,Crôm
+Màu kem chấm nhò,Màu trắng chấm nhỏ
+màu đồng thiếc ấm)
+Gray Pearl
+Xanh xám
+Màu vàng
+Màu đồng đỏ/Màu đen
+Màu crôm,Màu trắng/Màu đồng đỏ
+Glass Glossy Black
+Màu đen kim loại
+Màu trắng bóng,Màu bạch kim
+màu đồng thiếc giả cổ
+Màu đồng tối
+Màu đen huyền/Màu kem
+Light Gold
+0
+KEM NHẠT
+màu đồng đỏ (nhám)
+Sứ trắng mờ
+Màu đồng đỏ,Trắng
+Màu crôm/Màu đen
+Màu crôm,Vàng
+Màu đen,Màu trắng thủy tinh
+Vàng trầm
+màu trắng sơn tĩnh điện
+Trắng,Đen
+màu gỗ đỏ
+Màu đen mờ
+Màu đồng kim loại
+Màu niken đen
+Màu nhôm bóng
+NÂU NHẠT
+Màu xanh lá
+màu gỗ tếch (mờ)
+Màu xám bê tông
+Màu trắng,Màu Niken cổ xưa
+Nâu hạt dẻ
+`
+
+const skipColorNames = new Set(['null', '0', 'tên màu sắc', 'không phân loại', ''])
+
+const slugify = (value) => value
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .replace(/-+/g, '-')
+  .toLowerCase()
+
+const normalizeProductTypeId = (value) => {
+  if (!value) return null
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+}
+
+const normalizeText = (text = '') => text
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+
+const fallbackHashColor = (str = '') => {
+  let hash = 0
+  for (let i = 0; i < str.length; i += 1) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  let color = '#'
+  for (let i = 0; i < 3; i += 1) {
+    const value = (hash >> (i * 8)) & 0xff
+    color += `00${value.toString(16)}`.slice(-2)
+  }
+  return color
+}
+
+const clamp = (val, min = 0, max = 255) => Math.min(Math.max(val, min), max)
+
+const adjustColor = (hex, percent = 0) => {
+  if (!hex) return hex
+  const normalized = hex.replace('#', '')
+  const num = parseInt(normalized, 16)
+  if (Number.isNaN(num)) return hex
+  const amt = Math.round(2.55 * percent)
+  const r = clamp((num >> 16) + amt)
+  const g = clamp(((num >> 8) & 0x00ff) + amt)
+  const b = clamp((num & 0x0000ff) + amt)
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`
+}
+
+const guessColorFromName = (label) => {
+  if (!label) return fallbackHashColor(label)
+  const normalized = normalizeText(label)
+  const segments = normalized.split(/[,;+\/]/).map(part => part.trim()).filter(Boolean)
+  const primary = segments[0] || normalized
+
+  const resolveBaseColor = (text) => {
+    if (!text) return null
+    if (text.includes('den') || text.includes('black') || text.includes('huyen')) return '#1f1f1f'
+    if (text.includes('trang') || text.includes('white') || text.includes('snow')) return '#f8f9fa'
+    if (text.includes('xanh')) {
+      if (text.includes('bien') || text.includes('duong') || text.includes('ocean') || text.includes('lam') || text.includes('troi')) {
+        return '#1e88e5'
+      }
+      if (text.includes('la') || text.includes('leaf') || text.includes('cay') || text.includes('forest') || text.includes('nhom')) {
+        return '#2ecc71'
+      }
+      if (text.includes('riu') || text.includes('rieu')) {
+        return '#4c956c'
+      }
+      if (text.includes('co vit')) {
+        return '#228b22'
+      }
+      return '#1abc9c'
+    }
+    if (text.includes('xam') || text.includes('ghi') || text.includes('cement') || text.includes('betong')) return '#7f8c8d'
+    if (text.includes('vang 24k') || text.includes('24k') || text.includes('pvd')) return '#d4af37'
+    if (text.includes('vang dong') || text.includes('dong') || text.includes('bronze') || text.includes('copper')) return '#b87333'
+    if (text.includes('vang') || text.includes('gold')) return '#f2c94c'
+    if (text.includes('cam') || text.includes('orange') || text.includes('amber')) return '#ffa94d'
+    if (text.includes('hong') || text.includes('pink')) return '#f78fb3'
+    if (text.includes('do') || text.includes('red')) return '#d63031'
+    if (text.includes('tim') || text.includes('purple') || text.includes('violet')) return '#b39ddb'
+    if (text.includes('nau') || text.includes('go') || text.includes('wood') || text.includes('teak') || text.includes('wenge')) return '#8d5524'
+    if (text.includes('kem') || text.includes('be') || text.includes('ivory')) return '#f7e0c4'
+    if (text.includes('bac kim') || text.includes('bach kim') || text.includes('platinum')) return '#e5e4e2'
+    if (text.includes('bac') || text.includes('silver') || text.includes('chrome') || text.includes('crom') || text.includes('niken') || text.includes('nickel') || text.includes('inox') || text.includes('metal') || text.includes('kim loai')) return '#c0c0c0'
+    if (text.includes('bong') && text.includes('glass')) return '#ececec'
+    if (text.includes('crystal')) return '#dfe7fd'
+    return null
+  }
+
+  const baseColor = resolveBaseColor(primary) || resolveBaseColor(normalized)
+
+  let adjustment = 0
+  if (normalized.includes('nhat') || normalized.includes('light') || normalized.includes('pastel') || normalized.includes('sang')) {
+    adjustment += 20
+  }
+  if (normalized.includes('dam') || normalized.includes('dark') || normalized.includes('sau')) {
+    adjustment -= 20
+  }
+  if (normalized.includes('mo') || normalized.includes('matte') || normalized.includes('matt')) {
+    adjustment -= 5
+  }
+  if (normalized.includes('bong') || normalized.includes('gloss')) {
+    adjustment += 5
+  }
+
+  const resultColor = baseColor || fallbackHashColor(label)
+  return adjustment ? adjustColor(resultColor, adjustment) : resultColor
+}
+
+const buildSharedColors = () => {
+  const entries = rawColorData.split('\n').map(item => item.trim()).filter(Boolean)
+  const map = new Map()
+  entries.forEach(name => {
+    const normalized = name.trim()
+    if (!normalized) return
+    if (skipColorNames.has(normalized.toLowerCase())) return
+    const id = slugify(normalized)
+    if (!id || map.has(id)) return
+    map.set(id, {
+      id,
+      name: normalized,
+      swatch: guessColorFromName(normalized)
+    })
+  })
+  return Array.from(map.values())
+}
+
+const sharedColorOptions = buildSharedColors()
+const cloneSharedColors = () => sharedColorOptions.map(color => ({ ...color }))
+
+const rawSizeData = `
+40 x 80
+16.5 x 16.5
+16.3 x 51.7
+90 x 90
+90 X 180
+7.5 x 30
+120 x 278
+50 x 120
+10 x 30
+30 x 60
+100 x 100
+80 x 160
+45 x 90
+75 X 150
+60 x 60
+30 x 30
+80 x 80
+11 x 54
+100 x 200
+120 x 120
+20 x 20
+30 x 120
+6 x 24
+120 x 280
+60 x 120
+15 x 90
+20 x 120
+`
+
+const sharedSizes = rawSizeData
+  .split('\n')
+  .map(item => item.trim())
+  .filter(Boolean)
+  .map(label => ({
+    id: label.toLowerCase(),
+    name: label
+  }))
+const cloneSharedSizes = () => sharedSizes.map(size => ({ ...size }))
+
+const rawFeaturedCategories = `
+Gạch gốm ốp lát
+Gạch cắt
+Van vòi Lavabo đặt bàn 1 lỗ
+Mặt nạ bộ trộn nước âm tường
+Linh kiện
+Lavabo đặt bàn
+Thanh treo khăn
+Van vòi lavabo gắn tường - phần lắp ngoài
+Gạch men ốp tường
+Giá treo giấy vệ sinh
+Bát sen gắn tường
+Các sản phẩm khác
+Van vòi bồn tắm đặt sàn
+Vòi xịt vệ sinh
+Sen tay
+Thanh trượt, gác sen, sen tay, dây, cục cấp nước
+Bồn tắm thường - tự đứng
+Móc treo
+Van vòi Lavabo đặt bàn 3 lỗ
+Bát sen gắn trần
+Sen tắm gắn trần - bộ phận lắp ngoài
+Bình đựng xà phòng
+Lọ / cốc
+Nắp bồn cầu thông thường
+Van vòi bồn tắm gắn thành bồn
+Ván sợi bằng gỗ
+Nút nhấn két nước âm tường
+Sen tắm hông
+Phụ kiện vòi nước lavabo
+Sen tay, dây sen, gác sen, cục cấp nước
+Cục cấp nước cho sen tay
+Khay đựng xà phòng
+Thân bồn cầu treo tường
+Gương
+Vòng treo khăn
+Bộ xả nhấn - lavabo có lổ xả tràn
+Van vòi Lavabo gắn tường
+Nẹp
+Giá treo áo
+Lavabo âm bàn
+`
+
+const featuredCategoryNames = rawFeaturedCategories
+  .split('\n')
+  .map(item => item.trim())
+  .filter(name => name && name.toLowerCase() !== 'null')
+
+const tileFeaturedNames = ['Gạch gốm ốp lát', 'Gạch cắt', 'Gạch men ốp tường']
+const nonTileFeaturedNames = featuredCategoryNames.filter(name => !tileFeaturedNames.includes(name))
+const toFeaturedOption = (name) => ({ id: name, name })
+const cloneFeaturedCategories = (type) => {
+  const source = type === 'gạch' ? tileFeaturedNames : nonTileFeaturedNames
+  return source.map(toFeaturedOption)
+}
+
+const rawCollections = `
+fVENTI20
+GOCCIA
+ACCESSORIES
+Marble 2
+ANELLO
+RETTANGOLO ACCESSORIES
+Origini
+INMAGINE
+MARBLE 1
+EMPORIO SHOWER
+RETTANGOLO K
+RETTANGOLO
+CONO
+UNIVERSAL
+EMPORIO
+VIA MANZONI
+MARBLE 4
+RILIEVO
+ARCHITECTURA
+EMPORIO ACCESSORIES
+ORIGIN
+GOCCIA ACCESSORIES
+Ricambi e accessori
+RETTANGOLO SHOWER
+CONO ACCESSORIES
+GESSI 316
+INGRANAGGIO
+CONO SHOWER
+COLOUR
+SHOWER316
+ELEGANZA ACCESSORIES
+AFILO
+ISPA
+ELEGANZA
+VI-CLEAN
+ISPA ACCESSORIES
+SHUI COMFORT
+MIMI
+ELEGANZA SHOWER
+INCISO ACCESSORIES
+JUNO
+VIA TORTONA
+CLASSIC
+`
+
+const sharedCollections = rawCollections
+  .split('\n')
+  .map(item => item.trim())
+  .filter(Boolean)
+  .map(name => ({ id: name, name }))
+const cloneSharedCollections = () => sharedCollections.map(item => ({ ...item }))
 
 export default {
   ///POST http://item.vietceramics.vn/vi/loc-san-pham?space=TBVS
@@ -305,120 +1046,79 @@ export default {
     return {
       currentPage: 1,
       sortOption: 'newest',
-      priceRange: [0, 2000000000],
+      itemsPerPage: 12,
+      filterPreviewLimit: 6,
+      priceRange: [null, null],
+      priceInputs: {
+        from: '',
+        to: ''
+      },
+      saleOnly: false,
       selectedFilters: {
-        productTypes: [],
-        spaces: [],
-        sizes: [],
+        categories: ['gạch']
+      },
+      activeCategoryId: 'gạch',
+      selectedCategoryId: null,
+      selectedCollectionId: null,
+      selectedColorId: null,
+      selectedSizeId: null,
+      totalRecords: 0,
+      totalPagesFromApi: 1,
+      expandedSections: {
+        categories: [],
+        collections: [],
         colors: [],
-        categories: []
+        sizes: []
       },
       showMobileFilter: false,
+      updatingFromRoute: false,
       products: [],
       loading: false,
       imageLoaded: {},
-      // Data mẫu cho bộ lọc
       filters: {
-        productTypes: [
-          { id: 'tile', name: 'Gạch ốp lát' },
-          { id: 'sanitary', name: 'Thiết bị vệ sinh' },
-          { id: 'decoration', name: 'Gạch trang trí' }
-        ],
-        spaces: [
-          { id: 'pn', name: 'Phòng ngủ' },
-          { id: 'pk', name: 'Phòng khách' },
-          { id: 'pt', name: 'Phòng tắm' },
-          { id: 'pb', name: 'Nhà bếp' },
-          { id: 'nt', name: 'Ngoài trời' },
-          { id: 'tbvs', name: 'Thiết bị vệ sinh' },
-          { id: 'kh', name: 'Khác' }
-        ],
-        sizes: [
-          { id: '1000x1000', name: '1000 x 1000 mm' },
-          { id: '1200x1200', name: '1200 x 1200 mm' },
-          { id: '1200x2400', name: '1200 x 2400 mm' },
-          { id: '150x600', name: '150 x 600 mm' },
-          { id: '105x900', name: '105 x 900 mm' },
-          { id: '1500x3000', name: '1500 x 3000 mm' },
-          { id: '200x1000', name: '200 x 1000 mm' },
-          { id: '200x1200', name: '200 x 1200 mm' },
-          { id: '200x750', name: '200 x 750 mm' },
-          { id: '230x1200', name: '230 x 1200 mm' },
-          { id: '300x300', name: '300 x 300 mm' },
-          { id: '300x600', name: '300 x 600 mm' },
-          { id: '400x800', name: '400 x 800 mm' },
-          { id: '450x900', name: '450 x 900 mm' },
-          { id: '600x1200', name: '600 x 1200 mm' },
-          { id: '600x600', name: '600 x 600 mm' },
-          { id: '750x750', name: '750 x 750 mm' },
-          { id: '800x1600', name: '800 x 1600 mm' },
-          { id: '800x800', name: '800 x 800 mm' },
-          { id: '900x1800', name: '900 x 1800 mm' },
-          { id: '900x900', name: '900 x 900 mm' },
-          { id: '315x1000', name: '315 x 1000 mm' },
-          { id: '200x200', name: '200 x 200 mm' },
-          { id: '300x900', name: '300 x 900 mm' },
-          { id: '330x1000', name: '330 x 1000 mm' },
-          { id: '750x1500', name: '750 x 1500 mm' }
-        ],
-        colors: [
-          { id: 'white', code: '#ffffff' },
-          { id: 'black', code: '#000000' },
-          { id: 'gray', code: '#808080' },
-          { id: 'beige', code: '#f5f5dc' }
-        ],
         categories: [
-          {
-            id: 'bathroom',
-            name: 'Thiết bị phòng tắm',
-            expanded: false,
-            children: [
-              {
-                id: 'bathroom-sink',
-                name: 'Bồn rửa mặt',
-                expanded: false,
-                children: [
-                  { id: 'wall-mounted-sink', name: 'Bồn rửa mặt treo tường' },
-                  { id: 'countertop-sink', name: 'Bồn rửa mặt đặt bàn' },
-                  { id: 'pedestal-sink', name: 'Bồn rửa mặt có chân' }
-                ]
-              },
-              {
-                id: 'toilet',
-                name: 'Bồn cầu',
-                expanded: false,
-                children: [
-                  { id: 'one-piece-toilet', name: 'Bồn cầu liền khối' },
-                  { id: 'two-piece-toilet', name: 'Bồn cầu rời' },
-                  { id: 'wall-hung-toilet', name: 'Bồn cầu treo tường' }
-                ]
-              }
-            ]
+          { 
+            id: 'gạch', 
+            name: 'Gạch',
+            image: 'https://cdn-icons-gif.flaticon.com/10966/10966480.gif',
+            categories: cloneFeaturedCategories('gạch'),
+            collections: cloneSharedCollections(),
+            colors: cloneSharedColors(),
+            sizes: cloneSharedSizes()
           },
-          {
-            id: 'tile',
-            name: 'Gạch ốp lát',
-            expanded: false,
-            children: [
-              {
-                id: 'wall-tile',
-                name: 'Gạch ốp tường',
-                expanded: false,
-                children: [
-                  { id: 'ceramic-wall', name: 'Gạch ceramic ốp tường' },
-                  { id: 'porcelain-wall', name: 'Gạch porcelain ốp tường' }
-                ]
-              },
-              {
-                id: 'floor-tile',
-                name: 'Gạch lát nền',
-                expanded: false,
-                children: [
-                  { id: 'ceramic-floor', name: 'Gạch ceramic lát nền' },
-                  { id: 'porcelain-floor', name: 'Gạch porcelain lát nền' }
-                ]
-              }
-            ]
+          { 
+            id: 'thiết bị vệ sinh', 
+            name: 'Thiết bị vệ sinh',
+            image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif',
+            categories: cloneFeaturedCategories('thiết bị vệ sinh'),
+            collections: [
+              { id: 'flow', name: 'Flow' },
+              { id: 'emporio shower', name: 'Emporio Shower' },
+              { id: 'signature bath', name: 'Signature Bath' },
+              { id: 'urban wellness', name: 'Urban Wellness' },
+              { id: 'zen series', name: 'Zen Series' },
+              { id: 'artisan bath', name: 'Artisan Bath' },
+              { id: 'pure touch', name: 'Pure Touch' }
+            ],
+            colors: cloneSharedColors(),
+            sizes: cloneSharedSizes()
+          },
+          { 
+            id: 'sàn gỗ', 
+            name: 'Sàn gỗ',
+            image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
+            categories: cloneFeaturedCategories('sàn gỗ'),
+            collections: [
+              { id: 'signature wood', name: 'Signature Wood' },
+              { id: 'coastal wood', name: 'Coastal Wood' },
+              { id: 'herringbone studio', name: 'Herringbone Studio' },
+              { id: 'nordic oak', name: 'Nordic Oak' },
+              { id: 'urban rustic', name: 'Urban Rustic' },
+              { id: 'heritage plank', name: 'Heritage Plank' },
+              { id: 'eco deck', name: 'Eco Deck' }
+            ],
+            colors: cloneSharedColors(),
+            sizes: cloneSharedSizes()
           }
         ]
       }
@@ -440,7 +1140,7 @@ export default {
       return sorted
     },
     totalPages() {
-      return Math.ceil(this.products.length / 12) // 12 sản phẩm mỗi trang
+      return Math.max(1, this.totalPagesFromApi || 1)
     },
     visiblePages() {
       // Hiển thị tối đa 5 trang, ... nếu nhiều
@@ -457,61 +1157,251 @@ export default {
         }
       }
       return pages
+    },
+    activeCategory() {
+      if (!this.filters?.categories?.length) return null
+      const selectedId = this.activeCategoryId || this.selectedFilters.categories[0]
+      return this.filters.categories.find(cat => cat.id === selectedId) || this.filters.categories[0]
+
+    },
+    displayedCategories() {
+      if (!this.activeCategory?.categories) return []
+      const list = this.activeCategory.categories
+      return this.isSectionExpanded('categories')
+        ? list
+        : list.slice(0, this.filterPreviewLimit)
+    },
+    categoryHasMore() {
+      return !!(this.activeCategory?.categories && this.activeCategory.categories.length > this.filterPreviewLimit)
+    },
+    isCategoryExpanded() {
+      return this.isSectionExpanded('categories')
+    },
+    displayedCollections() {
+      const list = this.activeCategory?.collections || []
+      return this.isSectionExpanded('collections')
+        ? list
+        : list.slice(0, this.filterPreviewLimit)
+    },
+    collectionHasMore() {
+      const list = this.activeCategory?.collections || []
+      return list.length > this.filterPreviewLimit
+    },
+    isCollectionExpanded() {
+      return this.isSectionExpanded('collections')
+    },
+    displayedColors() {
+      const list = this.activeCategory?.colors || []
+      return this.isSectionExpanded('colors')
+        ? list
+        : list.slice(0, this.filterPreviewLimit)
+    },
+    colorHasMore() {
+      const list = this.activeCategory?.colors || []
+      return list.length > this.filterPreviewLimit
+    },
+    isColorExpanded() {
+      return this.isSectionExpanded('colors')
+    },
+    displayedSizes() {
+      const list = this.activeCategory?.sizes || []
+      return this.isSectionExpanded('sizes')
+        ? list
+        : list.slice(0, this.filterPreviewLimit)
+    },
+    sizeHasMore() {
+      const list = this.activeCategory?.sizes || []
+      return list.length > this.filterPreviewLimit
+    },
+    isSizeExpanded() {
+      return this.isSectionExpanded('sizes')
+    },
+    isTileCategory() {
+      return (this.activeCategory?.id || '').toLowerCase() === 'gạch'
+    },
+    hasActiveFilters() {
+      const defaultProductType = this.selectedFilters.categories && this.selectedFilters.categories[0] === 'gạch'
+      return !defaultProductType ||
+        !!(
+          this.selectedCategoryId ||
+          this.selectedCollectionId ||
+          this.selectedColorId ||
+          this.selectedSizeId ||
+          this.saleOnly ||
+          (this.priceRange[0] != null) ||
+          (this.priceRange[1] != null)
+        )
     }
   },
   methods: {
-    async loadProducts() {
-      try {
-        this.loading = true
-        this.products = [] // Clear products before loading
-        
-        // Tạo object để track trạng thái ảnh
-        this.imageLoaded = {}
+    applyRouteState(query = {}) {
+      this.updatingFromRoute = true
+      const page = parseInt(query.page, 10)
+      this.currentPage = Number.isNaN(page) || page < 1 ? 1 : page
 
-        const response = await axios.post('/api/SearchhProduct/_Filter', {
-          language: 'vi',
-          key: '',
+      const allowedSorts = ['newest', 'name', 'popular']
+      const sort = query.sort && allowedSorts.includes(query.sort) ? query.sort : 'newest'
+      this.sortOption = sort
+
+      let resolvedCategoryParam = query.category || null
+      let routeProductType = normalizeProductTypeId(query.productType || null)
+      if (!routeProductType && resolvedCategoryParam) {
+        const isTopLevelCategory = this.filters.categories.some(cat => cat.id === resolvedCategoryParam)
+        if (isTopLevelCategory) {
+          routeProductType = normalizeProductTypeId(resolvedCategoryParam)
+          resolvedCategoryParam = null
+        }
+      }
+      routeProductType = routeProductType || this.selectedFilters.categories[0] || null
+      if (routeProductType) {
+        this.activeCategoryId = routeProductType
+        if (this.selectedFilters.categories[0] !== routeProductType) {
+          this.selectedFilters.categories = [routeProductType]
+        }
+      } else {
+        this.activeCategoryId = null
+        this.selectedFilters.categories = []
+      }
+
+      this.selectedCategoryId = resolvedCategoryParam
+      this.selectedCollectionId = query.collection || null
+      this.selectedColorId = query.color || null
+      this.selectedSizeId = query.size || null
+
+      const priceFrom = query.priceFrom !== undefined ? Number(query.priceFrom) : null
+      const priceTo = query.priceTo !== undefined ? Number(query.priceTo) : null
+      this.priceRange = [Number.isNaN(priceFrom) ? null : priceFrom, Number.isNaN(priceTo) ? null : priceTo]
+      this.priceInputs = {
+        from: this.priceRange[0] != null ? String(this.priceRange[0]) : '',
+        to: this.priceRange[1] != null ? String(this.priceRange[1]) : ''
+      }
+
+      this.saleOnly = query.saleOnly === 'true' || query.saleOnly === '1'
+
+      this.$nextTick(() => {
+        this.updatingFromRoute = false
+      })
+    },
+    updateRouteQuery(partialQuery = {}) {
+      const nextQuery = { ...this.$route.query }
+
+      Object.entries(partialQuery).forEach(([key, value]) => {
+        const isDefaultPage = key === 'page' && (Number(value) || 1) === 1
+        const isDefaultSort = key === 'sort' && (value === 'newest' || !value)
+        const shouldRemove =
+          value === undefined ||
+          value === null ||
+          value === '' ||
+          isDefaultPage ||
+          isDefaultSort
+
+        if (shouldRemove) {
+          delete nextQuery[key]
+        } else {
+          nextQuery[key] = String(value)
+        }
+      })
+
+      this.$router.replace({ query: nextQuery }).catch(() => {})
+    },
+    async loadProducts() {
+      this.loading = true
+      this.products = []
+      this.imageLoaded = {}
+
+      try {
+        const params = {
           pageIndex: this.currentPage,
-          pageSize: 12,
-          minPrice: this.priceRange[0],
-          maxPrice: this.priceRange[1]
-        }, {
-          params: {
-            space: this.$route.query.space || '',
-            size: this.$route.query.size || '',
-            sort: this.sortOption
-          }
+          pageSize: this.itemsPerPage
+        }
+
+        const productType = this.selectedFilters.categories && this.selectedFilters.categories.length
+          ? this.selectedFilters.categories[0]
+          : null
+        if (productType) {
+          params.productType = productType
+        }
+        if (this.selectedCategoryId) {
+          params.category = this.selectedCategoryId
+        }
+        if (this.selectedCollectionId) {
+          params.collection = this.selectedCollectionId
+        }
+        if (this.selectedColorId) {
+          params.color = this.selectedColorId
+        }
+        if (this.selectedSizeId) {
+          params.size = this.selectedSizeId
+        }
+        if (this.priceRange[0] !== null && this.priceRange[0] !== undefined) {
+          params.priceFrom = this.priceRange[0]
+        }
+        if (this.priceRange[1] !== null && this.priceRange[1] !== undefined) {
+          params.priceTo = this.priceRange[1]
+        }
+        if (this.saleOnly) {
+          params.isSale = true
+        }
+
+        const resp = await axios.get('https://api.vietceramics.com/api/Products/Search', {
+          params
         })
-        
-        const productItems = response.data.ListItems.map(item => {
-          const productId = item.No_
-          // Set default image loading state
+
+        const items = resp.data?.data || resp.data?.ListItems || resp.data?.Items || resp.data || []
+
+        const firstItem = items && items.length ? items[0] : null
+        const totalRecords = resp.data?.totalRecords ?? firstItem?.total_records ?? 0
+        const totalPages = resp.data?.totalPages ?? firstItem?.total_pages ?? Math.max(1, Math.ceil((totalRecords || 1) / this.itemsPerPage))
+        this.totalRecords = totalRecords || (items.length ? (this.currentPage - 1) * this.itemsPerPage + items.length : 0)
+        this.totalPagesFromApi = totalPages
+
+        const normalizePrice = (value) => {
+          if (value === null || value === undefined || value === '') return null
+          const num = Number(value)
+          return Number.isNaN(num) ? null : num
+        }
+
+        const productItems = (items || []).map(item => {
+          const code = item.product_code || item.productCode || item.ProductCode || item.No_ || item.ItemCode || item.Code || item.code || item.id
+          const name = item.product_name || item.productName || item.ProductName || item.Name || item.name || item.Title || ''
+          const productId = item.id || code || Math.random().toString(36).slice(2, 9)
           this.imageLoaded[productId] = false
-          
+
+          const imageUrl = item.avatar || item.custom_field143 || (code ? `http://toppstiles.com.vn/products-test/hinh-gach/${code}.jpg` : '')
+          const priceBase = normalizePrice(item.price_base ?? item.priceBase ?? item.unit_price ?? item.price_sale)
+          const priceSale = normalizePrice(item.price_sale ?? item.priceSale)
+          const isSaleFlag = item.is_sale === true || item.is_sale === 1 || item.is_sale === '1' || item.is_sale === 'true'
+
           return {
             id: productId,
-            name: item.Name || 'Gạch ' + item.No_,
-            itemCode: item.No_,
-            image: `http://toppstiles.com.vn/products-test/hinh-gach/${item.No_}.jpg`,
-            collectionName: item.Class || 'Chưa phân loại',
-            description: item.Description || ''
+            name,
+            itemCode: code || '',
+            image: imageUrl,
+            priceBase,
+            priceSale,
+            isSale: Boolean(isSaleFlag),
+            category: item.product_category || '',
+            collectionName: item.custom_field121 || '',
+            colorName: item.custom_field90 || item.custom_field149 || '',
+            sizeName: item.custom_field141 || item.custom_field104 || '',
+            description: item.description || item.sale_description || ''
           }
         })
-        
-        // Delay products loading for smoother UX
-        setTimeout(() => {
-          this.products = productItems
-          this.loading = false
-        }, 300)
+
+        this.products = productItems
       } catch (error) {
         console.error('Error loading products:', error)
         this.products = []
+        this.totalRecords = 0
+        this.totalPagesFromApi = 1
+      } finally {
         this.loading = false
+        this.applyCatalogSeo()
       }
     },
     handleImageError(event, productId) {
       // Replace broken image with placeholder
-      event.target.src = 'https://via.placeholder.com/300x300?text=No+Image'
+      event.target.src = 'https://placehold.co/200?text=Kh%C3%B4ng%20c%C3%B3%20%E1%BA%A3nh&font=roboto'
       this.imageLoaded[productId] = true
     },
     handleImageLoad(event) {
@@ -530,18 +1420,6 @@ export default {
       img.style.objectFit = 'cover';
       img.style.objectPosition = 'center';
     },
-    toggleColor(colorId) {
-      const index = this.selectedFilters.colors.indexOf(colorId)
-      if (index === -1) {
-        this.selectedFilters.colors.push(colorId)
-      } else {
-        this.selectedFilters.colors.splice(index, 1)
-      }
-    },
-    applyFilters() {
-      this.currentPage = 1
-      this.loadProducts()
-    },
     formatPrice(price) {
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
@@ -549,43 +1427,220 @@ export default {
         maximumFractionDigits: 0
       }).format(price)
     },
-    updatePriceRange() {
-      // Đảm bảo giá tối thiểu không lớn hơn giá tối đa
-      if (this.priceRange[0] > this.priceRange[1]) {
-        this.priceRange[0] = this.priceRange[1]
-      }
-      this.loadProducts()
+    setCategoryFilter(categoryId) {
+      if (this.activeCategoryId === categoryId) return
+      this.activeCategoryId = categoryId
+      this.selectedFilters.categories = [categoryId]
     },
-    toggleCategory(categoryId) {
-      // Tìm category trong cấp 1
-      let category = this.filters.categories.find(cat => cat.id === categoryId)
-      if (category) {
-        category.expanded = !category.expanded
-        return
+    selectCategory(categoryId) {
+      this.selectedCategoryId = this.selectedCategoryId === categoryId ? null : categoryId
+    },
+    selectSubCategory(subCategoryId) {
+      this.selectedCollectionId = this.selectedCollectionId === subCategoryId ? null : subCategoryId
+    },
+    selectColor(colorId) {
+      this.selectedColorId = this.selectedColorId === colorId ? null : colorId
+    },
+    selectSize(sizeId) {
+      this.selectedSizeId = this.selectedSizeId === sizeId ? null : sizeId
+    },
+    toggleFilterSection(section) {
+      const categoryId = this.activeCategory?.id
+      if (!categoryId || !this.expandedSections[section]) return
+      if (this.expandedSections[section].includes(categoryId)) {
+        this.expandedSections[section] = this.expandedSections[section].filter(id => id !== categoryId)
+      } else {
+        this.expandedSections[section] = [...this.expandedSections[section], categoryId]
+      }
+    },
+    isSectionExpanded(section) {
+      const categoryId = this.activeCategory?.id
+      if (!categoryId) return false
+      return (this.expandedSections[section] || []).includes(categoryId)
+    },
+    resetSelectionsForCategory(categoryId) {
+      this.selectedCategoryId = null
+      this.selectedCollectionId = null
+      this.selectedColorId = null
+      this.selectedSizeId = null
+      if (!categoryId) return
+      Object.keys(this.expandedSections).forEach(section => {
+        this.expandedSections[section] = this.expandedSections[section].filter(id => id !== categoryId)
+      })
+    },
+    clearAllFilters() {
+      this.updatingFromRoute = true
+      this.selectedFilters.categories = ['gạch']
+      this.activeCategoryId = 'gạch'
+      this.selectedCategoryId = null
+      this.selectedCollectionId = null
+      this.selectedColorId = null
+      this.selectedSizeId = null
+      this.priceRange = [null, null]
+      this.priceInputs = { from: '', to: '' }
+      this.saleOnly = false
+      this.currentPage = 1
+      Object.keys(this.expandedSections).forEach(section => {
+        this.expandedSections[section] = []
+      })
+      this.updatingFromRoute = false
+      this.updateRouteQuery({
+        productType: 'gạch',
+        category: undefined,
+        collection: undefined,
+        color: undefined,
+        size: undefined,
+        priceFrom: undefined,
+        priceTo: undefined,
+        saleOnly: undefined,
+        page: 1
+      })
+    },
+    shouldSpanCategory(name = '') {
+      if (!name) return false
+      return name.length > 20
+    },
+    applyPriceFilter() {
+      const fromValue = this.priceInputs.from !== '' ? Number(this.priceInputs.from) : null
+      const toValue = this.priceInputs.to !== '' ? Number(this.priceInputs.to) : null
+
+      const normalizedFrom = Number.isNaN(fromValue) ? null : fromValue
+      const normalizedTo = Number.isNaN(toValue) ? null : toValue
+
+      if (normalizedFrom !== null && normalizedTo !== null && normalizedFrom > normalizedTo) {
+        this.priceRange = [normalizedTo, normalizedFrom]
+        this.priceInputs.from = normalizedTo
+        this.priceInputs.to = normalizedFrom
+      } else {
+        this.priceRange = [normalizedFrom, normalizedTo]
       }
 
-      // Tìm category trong cấp 2
-      for (let level1 of this.filters.categories) {
-        category = level1.children.find(cat => cat.id === categoryId)
-        if (category) {
-          category.expanded = !category.expanded
-          return
-        }
+      if (this.updatingFromRoute) return
+      this.currentPage = 1
+      const priceFromParam = this.priceRange[0] != null ? this.priceRange[0] : undefined
+      const priceToParam = this.priceRange[1] != null ? this.priceRange[1] : undefined
+      this.updateRouteQuery({
+        priceFrom: priceFromParam,
+        priceTo: priceToParam,
+        page: 1
+      })
+    },
+    goToPage(page) {
+      const target = Number(page)
+      if (Number.isNaN(target) || target === this.currentPage) return
+      if (target < 1 || target > this.totalPages) return
+      this.currentPage = target
+    },
+    applyCatalogSeo() {
+      const typeName = this.activeCategory?.name || 'Danh mục Vietceramics'
+      const selectedCategory = this.activeCategory?.categories?.find(cat => cat.id === this.selectedCategoryId)
+      const selectedCollection = this.activeCategory?.collections?.find(col => col.id === this.selectedCollectionId)
+      const selectedColor = this.activeCategory?.colors?.find(color => color.id === this.selectedColorId)
+      const selectedSize = this.activeCategory?.sizes?.find(size => size.id === this.selectedSizeId)
+      const saleText = this.saleOnly ? 'sản phẩm đang giảm giá' : 'bộ sưu tập mới nhất'
+
+      const filters = [
+        selectedCategory?.name,
+        selectedCollection?.name,
+        selectedColor?.name,
+        selectedSize?.name
+      ].filter(Boolean)
+
+      const filterSummary = filters.length ? filters.join(', ') : null
+      const titleParts = ['Vietceramics', typeName]
+      if (selectedCategory?.name) {
+        titleParts[1] += ` - ${selectedCategory.name}`
       }
+      const pageTitle = titleParts.join(' | ')
+      const count = this.totalRecords || this.products.length
+      const description = filterSummary
+        ? `Tìm ${count} ${saleText} cho ${filterSummary} thuộc nhóm ${typeName.toLowerCase()} tại Vietceramics.`
+        : `Khám phá ${count} ${typeName.toLowerCase()} ${saleText} tại Vietceramics.`
+      const keywords = ['Vietceramics', typeName, filterSummary].filter(Boolean).join(',')
+      const heroImage = this.products[0]?.image
+
+      updateSeoMeta({
+        title: pageTitle,
+        description,
+        keywords,
+        image: heroImage,
+        url: window.location.href
+      })
     }
   },
   watch: {
     '$route.query': {
-      handler() {
+      handler(newQuery) {
+        this.applyRouteState(newQuery || {})
         this.loadProducts()
       },
       immediate: true
     },
-    currentPage() {
-      this.loadProducts()
+    currentPage(newPage) {
+      if (this.updatingFromRoute) return
+      this.updateRouteQuery({ page: newPage })
     },
-    sortOption() {
-      this.loadProducts()
+    sortOption(newSort) {
+      if (this.updatingFromRoute) return
+      this.updateRouteQuery({ sort: newSort })
+    },
+    'selectedFilters.categories': {
+      handler(newVal) {
+        if (this.updatingFromRoute) return
+        const productType = newVal && newVal.length ? newVal[0] : undefined
+        if (productType) {
+          this.activeCategoryId = productType
+          this.resetSelectionsForCategory(productType)
+        } else {
+          this.activeCategoryId = null
+          this.resetSelectionsForCategory(null)
+        }
+        this.currentPage = 1
+        this.updateRouteQuery({
+          productType,
+          page: 1
+        })
+      }
+    },
+    selectedCategoryId(newVal) {
+      if (this.updatingFromRoute) return
+      this.currentPage = 1
+      this.updateRouteQuery({
+        category: newVal,
+        page: 1
+      })
+    },
+    selectedCollectionId(newVal) {
+      if (this.updatingFromRoute) return
+      this.currentPage = 1
+      this.updateRouteQuery({
+        collection: newVal,
+        page: 1
+      })
+    },
+    selectedColorId(newVal) {
+      if (this.updatingFromRoute) return
+      this.currentPage = 1
+      this.updateRouteQuery({
+        color: newVal,
+        page: 1
+      })
+    },
+    selectedSizeId(newVal) {
+      if (this.updatingFromRoute) return
+      this.currentPage = 1
+      this.updateRouteQuery({
+        size: newVal,
+        page: 1
+      })
+    },
+    saleOnly(newVal) {
+      if (this.updatingFromRoute) return
+      this.currentPage = 1
+      this.updateRouteQuery({
+        saleOnly: newVal ? 'true' : undefined,
+        page: 1
+      })
     }
   }
 }
@@ -601,6 +1656,22 @@ export default {
   padding: 1.5rem;
   border-radius: 8px;
   height: 100%;
+}
+
+.reset-filter-btn {
+  border: 1px solid #971b1e;
+  color: #971b1e;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.15rem 0.75rem;
+  background: transparent;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.reset-filter-btn:hover {
+  background: #971b1e;
+  color: #fff;
 }
 
 .filter-group h4 {
@@ -624,6 +1695,21 @@ export default {
 
 .color-option.active {
   border-color: #0d6efd;
+}
+
+.no-products-alert {
+  padding: 2rem;
+  text-align: center;
+  border: 2px dashed #e9ecef;
+  border-radius: 16px;
+  background: #fff;
+  margin-bottom: 2rem;
+}
+
+.no-products-icon {
+  font-size: 2.5rem;
+  color: #971b1e;
+  margin-bottom: 1rem;
 }
 
 .card {
@@ -667,6 +1753,25 @@ export default {
   background: #f8f9fa;
 }
 
+.image-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  z-index: 2;
+}
+
+.image-skeleton-shimmer {
+  width: 90%;
+  height: 90%;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+  background-size: 200% 100%;
+  animation: loading-skeleton 1.5s infinite;
+}
+
 .card:hover .card-img-top {
   opacity: 0.92;
   transform: scale(1.04);
@@ -695,6 +1800,24 @@ export default {
   text-align: center;
 }
 
+.price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.price-sale {
+  color: #c92a2a;
+  font-weight: 700;
+}
+
+.price-base {
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
 .btn-primary {
   background: #971b1e;
   border: none;
@@ -709,6 +1832,20 @@ export default {
   background: #7a1618;
   transform: scale(1.07);
   box-shadow: 0 4px 16px rgba(151,27,30,0.15);
+}
+
+.sale-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #ff6b6b;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 600;
+  z-index: 2;
+  text-transform: uppercase;
 }
 
 @media (max-width: 992px) {
@@ -1008,46 +2145,201 @@ export default {
   font-weight: 500;
 }
 
-.category-filter {
-  padding: 0.5rem 0;
+.category-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.category-level {
-  position: relative;
+.category-tab {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #dee2e6;
+  background: #fff;
+  border-radius: 16px;
+  padding: 0.85rem;
+  width: 100%;
+  text-align: left;
+  color: #212529;
+  font-weight: 600;
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.25s;
 }
 
-.category-header {
+.category-tab-image {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: #fff8f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.category-tab-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.category-tab-title {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.category-tab:hover {
+  border-color: #971b1e;
+  box-shadow: 0 8px 20px rgba(151,27,30,0.12);
+  transform: translateX(6px);
+}
+
+.category-tab.active {
+  background: linear-gradient(135deg, rgba(151,27,30,0.95), rgba(151,27,30,0.75));
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 12px 30px rgba(151,27,30,0.25);
+}
+
+.category-tab.active .category-tab-image {
+  background: rgba(255,255,255,0.2);
+}
+
+.sub-category-panel {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed #dee2e6;
+}
+
+.sub-category-panel h5 {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sub-category-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sub-category-pill {
+  border: 1px solid #e9ecef;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.9rem;
+  color: #495057;
+  transition: all 0.2s;
+  max-width: 180px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub-category-pill.span-2 {
+  grid-column: span 2;
+}
+
+.sub-category-pill:hover {
+  border-color: #971b1e;
+  color: #971b1e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(151,27,30,0.12);
+}
+
+.sub-category-pill.active {
+  background: #971b1e;
+  border-color: #971b1e;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(151,27,30,0.2);
+}
+
+.filter-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  border: 1px solid #e9ecef;
+  background: #fff;
+  border-radius: 14px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+  color: #495057;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.filter-chip:hover {
+  border-color: #971b1e;
+  color: #971b1e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(151,27,30,0.12);
+}
+
+.filter-chip.active {
+  background: #971b1e;
+  border-color: #971b1e;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(151,27,30,0.2);
+}
+
+.color-chip .color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.size-chip .size-label {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.sub-category-more {
+  border: 1px dashed #c0c7d1;
+  background: transparent;
+  color: #971b1e;
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+}
+
+.sub-category-more:hover {
+  background: rgba(151,27,30,0.08);
+  border-color: #971b1e;
+}
+
+.price-filter-group .price-inputs {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
-  padding: 0.25rem 0;
 }
 
-.category-header:hover {
-  color: #971b1e;
+.price-filter-group .price-inputs .form-control {
+  width: 100%;
 }
 
-.category-header i {
-  margin-left: auto;
-  font-size: 0.9rem;
-  color: #666;
-  transition: transform 0.2s;
+.price-filter-group .price-separator {
+  color: #6c757d;
+  font-weight: 600;
 }
 
-.category-level-2,
-.category-level-3 {
-  margin-top: 0.5rem;
-}
-
-.category-level-2 .form-check,
-.category-level-3 .form-check {
-  margin-bottom: 0.25rem;
-}
-
-.category-level-2 .form-check-label,
-.category-level-3 .form-check-label {
-  font-size: 0.95rem;
+.sale-toggle {
+  margin-top: 0.75rem;
 }
 
 /* Product list layout */

@@ -93,7 +93,10 @@
       <div class="container">
         <div class="spaces-grid">
           <div class="space-item" v-for="space in spaces" :key="space.id">
-            <router-link :to="'/danh-muc?space=' + space.id" class="space-card text-center">
+            <router-link
+              class="space-card text-center"
+              :to="{ name: 'catalog', query: { productType: space.productType } }"
+            >
               <div class="space-icon mb-2">
                 <img :src="space.image" :alt="space.name" class="space-image">
               </div>
@@ -124,6 +127,7 @@
 
 <script>
 import axios from 'axios'
+import { updateSeoMeta } from '@/utils/seo'
 const apiBaseUrl = 'https://api.vietceramics.com/api'
 const cdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'http://toppstiles.com.vn/products-test/').trim()
 export default {
@@ -139,46 +143,21 @@ export default {
       spaces: [
         {
           id: 'pn',
-          name: 'Phòng ngủ',
-          icon: 'fa-solid fa-bed',
-          image: 'https://cdn-icons-gif.flaticon.com/8996/8996751.gif'
-        },
-        {
-          id: 'pk',
-          name: 'Phòng khách',
-          icon: 'fa-solid fa-couch',
-          image: 'https://cdn-icons-gif.flaticon.com/16677/16677972.gif'
-        },
-        {
-          id: 'pt',
-          name: 'Phòng tắm',
-          icon: 'fa-solid fa-bath',
-          image: 'https://cdn-icons-gif.flaticon.com/17695/17695859.gif'
-        },
-        {
-          id: 'pb',
-          name: 'Nhà bếp',
-          icon: 'fa-solid fa-kitchen-set',
-          image: 'https://cdn-icons-gif.flaticon.com/8761/8761661.gif'
-        },
-        {
-          id: 'nt',
-          name: 'Ngoài trời',
-          icon: 'fa-solid fa-sun',
-          image: 'https://cdn-icons-gif.flaticon.com/13708/13708021.gif'
+          name: 'Gạch ốp lát',
+          productType: 'gạch',
+          image: 'https://cdn-icons-gif.flaticon.com/10966/10966480.gif'
         },
         {
           id: 'tbvs',
-          name: 'Thiêt bị vệ sinh phòng tắm',
-          icon: 'fa-solid fa-briefcase',
-          image: 'https://cdn-icons-gif.flaticon.com/9576/9576158.gif'
-        }
-        ,
+          name: 'Thiết bị vệ sinh phòng tắm',
+          productType: 'thiết bị vệ sinh',
+          image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif'
+        },
         {
           id: 'kh',
-          name: 'Khác',
-          icon: 'fa-solid fa-briefcase',
-          image: 'https://cdn-icons-gif.flaticon.com/16046/16046415.gif'
+          name: 'Sàn gỗ',
+          productType: 'sàn gỗ',
+          image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png'
         }
       ],
       sizes: [
@@ -289,10 +268,20 @@ export default {
       this.userData = null
       this.showUserMenu = false
       this.$router.push('/login')
+    },
+    applyHomeSeo() {
+      const spaceLabels = this.spaces.map(space => space.name).join(', ')
+      updateSeoMeta({
+        title: 'Vietceramics | Không gian vật liệu cao cấp',
+        description: `Khám phá ${spaceLabels} cùng hàng nghìn thiết kế gạch, thiết bị vệ sinh và sàn gỗ chính hãng từ Vietceramics.`,
+        keywords: `Vietceramics,${spaceLabels}`,
+        image: this.spaces[0]?.image
+      })
     }
   },
   mounted() {
     document.addEventListener('click', this.closeUserMenu)
+    this.applyHomeSeo()
   },
   beforeUnmount() {
     document.removeEventListener('click', this.closeUserMenu)

@@ -14,8 +14,15 @@ const fieldLabelMap = fieldRows.reduce((acc, row) => {
 }, {});
 
 const formatCurrency = (value) => {
-  const number = Number(value) || 0;
+  if (value === null || value === undefined || value === '') return '';
+  const number = Number(value);
+  if (Number.isNaN(number)) return '';
   return number.toLocaleString('vi-VN') + 'đ';
+};
+const normalizePrice = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
 };
 const buildCollectionPrefix = (collectionName) => {
   if (!collectionName) return '';
@@ -84,7 +91,7 @@ export const productService = {
       }
 
       const code = item.product_code || item.id || productId;
-      let priceValue = item.unit_price;
+      let fallbackPrice = normalizePrice(item.unit_price);
       // Lấy giá từ API PricesByCode nếu có
       try {
         const priceRes = await axios.get(`${apiBaseUrl}/Products/PricesByCode`, {
@@ -101,13 +108,27 @@ export const productService = {
         } else if (typeof priceData === 'number' || typeof priceData === 'string') {
           extracted = priceData;
         }
-        if (extracted !== null && extracted !== undefined && !Number.isNaN(Number(extracted))) {
-          priceValue = Number(extracted);
+        const normalizedExtracted = normalizePrice(extracted);
+        if (normalizedExtracted !== null) {
+          fallbackPrice = normalizedExtracted;
         }
       } catch (err) {
         console.warn('PricesByCode fetch failed, fallback to search price', err);
       }
-      const price = formatCurrency(priceValue);
+      const apiBasePrice = normalizePrice(item.price_base ?? item.priceBase);
+      const apiSalePrice = normalizePrice(item.price_sale ?? item.priceSale);
+      let priceBaseValue = apiBasePrice ?? fallbackPrice ?? null;
+      const priceSaleValue = apiSalePrice;
+      const apiSaleFlag = item.is_sale === true || item.is_sale === '1' || item.is_sale === 1 || item.is_sale === 'true';
+      const hasSalePricing = apiSaleFlag || (priceSaleValue !== null && priceBaseValue !== null && priceSaleValue < priceBaseValue);
+      const displayPriceValue = hasSalePricing && priceSaleValue !== null
+        ? priceSaleValue
+        : (priceBaseValue ?? priceSaleValue ?? fallbackPrice ?? 0);
+      if (priceBaseValue === null) {
+        priceBaseValue = displayPriceValue;
+      }
+      const currentPriceFormatted = formatCurrency(displayPriceValue);
+      const originalPriceFormatted = hasSalePricing && priceBaseValue !== null ? formatCurrency(priceBaseValue) : '';
       const specs = buildSpecsFromDefinitions(item);
 
       // Map API fields to UI model
@@ -117,8 +138,12 @@ export const productService = {
         itemCode: code,
         productType: item.product_category || 'product',
         name: item.product_name || code,
-        price,
-        originalPrice: price,
+        price: currentPriceFormatted,
+        originalPrice: originalPriceFormatted || currentPriceFormatted,
+        priceBaseValue,
+        priceSaleValue,
+        displayPriceValue,
+        isSale: Boolean(hasSalePricing && priceSaleValue !== null && priceBaseValue !== null && priceSaleValue !== priceBaseValue),
         discount: item.discount ? `${item.discount}%` : '',
         shortDescription: item.description || '',
         longDescription: item.description || item.custom_field51 || '',
@@ -137,7 +162,9 @@ export const productService = {
         images: [],
         images_real: [],
         lotPrices: [],
-        comboItems: []
+        /// giảm định data comboItems
+        comboItems: [ 
+        ]
       };
     } catch (error) {
       console.error('Error fetching product detail:', error);
