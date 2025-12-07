@@ -1401,7 +1401,7 @@ export default {
     },
     handleImageError(event, productId) {
       // Replace broken image with placeholder
-      event.target.src = 'https://placehold.co/200?text=Kh%C3%B4ng%20c%C3%B3%20%E1%BA%A3nh&font=roboto'
+      event.target.src = 'https://placehold.co/100/971b1e/white?text=%0AKH%C3%94NG%20C%C3%93%20H%C3%8CNH%20%E1%BA%A2NH&font=Roboto'
       this.imageLoaded[productId] = true
     },
     handleImageLoad(event) {
