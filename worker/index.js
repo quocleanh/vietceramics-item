@@ -78,6 +78,21 @@ export default {
       return handleGet(url, env);
     }
 
+    // Asset / SPA fallback
+    if (env.ASSETS) {
+      const assetResponse = await env.ASSETS.fetch(request);
+      // Serve asset if found
+      if (assetResponse && assetResponse.status !== 404) {
+        return assetResponse;
+      }
+      // SPA fallback: return index.html for navigation requests
+      const accept = request.headers.get('accept') || '';
+      if (request.method === 'GET' && accept.includes('text/html')) {
+        const indexUrl = new URL('/index.html', url);
+        return env.ASSETS.fetch(new Request(indexUrl, request));
+      }
+    }
+
     return makeJsonResponse({ error: 'Not found' }, 404);
   }
 };
