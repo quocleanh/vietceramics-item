@@ -1,21 +1,23 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    // Asset / SPA fallback only
+    const accept = request.headers.get('accept') || '';
+
+    // Serve static assets if binding exists
     if (env.ASSETS) {
       const assetResponse = await env.ASSETS.fetch(request);
-      // Serve asset if found
+      // If asset exists (not 404) return it
       if (assetResponse && assetResponse.status !== 404) {
         return assetResponse;
       }
-      // SPA fallback: return index.html for navigation requests
-      const accept = request.headers.get('accept') || '';
+      // SPA fallback: always return index.html for navigation requests
       if (request.method === 'GET' && accept.includes('text/html')) {
         const indexUrl = new URL('/index.html', url);
-    return env.ASSETS.fetch(new Request(indexUrl, request));
+        return env.ASSETS.fetch(new Request(indexUrl, request));
       }
     }
 
+    // Default JSON 404
     return makeJsonResponse({ error: 'Not found' }, 404);
   }
 };
