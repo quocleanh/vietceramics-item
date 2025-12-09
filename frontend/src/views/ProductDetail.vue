@@ -189,19 +189,14 @@
 
         </div>
 
-        <!-- Certificates -->
-        <div class="certificates">
-          <div class="cert-item">
-            <img src="https://cdn-icons-png.flaticon.com/128/1006/1006771.png" alt="ISO" class="cert-icon">
-            <div class="cert-label">ISO 9001</div>
-          </div>
-          <div class="cert-item">
-            <img src="https://cdn-icons-png.flaticon.com/128/1006/1006771.png" alt="CE" class="cert-icon">
-            <div class="cert-label">CE Mark</div>
-          </div>
-          <div class="cert-item">
-            <img src="https://cdn-icons-png.flaticon.com/128/1006/1006771.png" alt="Green" class="cert-icon">
-            <div class="cert-label">Green Label</div>
+        <!-- Certificates / Feature badges -->
+        <div v-if="certificateItems.length" class="certificates">
+          <div class="cert-item" v-for="(cert, index) in certificateItems" :key="index">
+            <i v-if="cert.icon" class="cert-icon fi" :class="cert.icon"></i>
+            <div class="cert-label">
+              <div class="cert-name">{{ cert.label }}</div>
+              <div class="cert-value">{{ cert.value }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -258,7 +253,15 @@
               <tbody>
                 <tr v-for="(value, key) in chunk" :key="key">
                   <td class="spec-key">{{ key }}</td>
-                  <td class="spec-value">{{ value }}</td>
+                  <td class="spec-value">
+                    <router-link
+                      v-if="isProductLineField(key) && !isPlaceholderValue(value)"
+                      :to="getCatalogLinkForValue(value)"
+                    >
+                      {{ value }}
+                    </router-link>
+                    <span v-else>{{ value }}</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -554,9 +557,63 @@ export default {
       const type = (this.product?.productType || '').toLowerCase();
       const isSanitary = type.includes('thiết bị vệ sinh') || type === 'bath';
       return isSanitary || this.isLoggedIn;
+    },
+    certificateItems() {
+      const specs = this.product?.specifications || {};
+      const placeholder = 'Đang cập nhật';
+      const getValue = (keys) => {
+        const keyArr = Array.isArray(keys) ? keys : [keys];
+        for (const key of keyArr) {
+          const raw = specs[key];
+          if (raw !== undefined && raw !== null) {
+            const str = String(raw).trim();
+            return str || placeholder;
+          }
+        }
+        return placeholder;
+      };
+
+      return [
+        {
+          label: 'Công Nghệ Bề Mặt',
+          value: getValue(['Công Nghệ Bề Mặt', 'Công nghệ bề mặt']),
+          icon: 'fi-br-layer-plus'
+        },
+        {
+          label: 'Chứng chỉ môi trường',
+          value: getValue(['Chứng chỉ môi trường']),
+          icon: 'fi-br-leaf'
+        },
+        {
+          label: 'Công nghệ chống trượt',
+          value: getValue(['Chống Trượt', 'Công nghệ chống trượt']),
+          icon: 'fi-br-shield-check'
+        }
+      ];
     }
   },
   methods: {
+    isProductLineField(key) {
+      return String(key || '').trim().toLowerCase() === 'dòng sản phẩm';
+    },
+    isPlaceholderValue(value) {
+      const str = String(value || '').trim().toLowerCase();
+      return (
+        !str ||
+        str === 'đang cập nhật' ||
+        str === 'dang cap nhat' ||
+        str === 'liên hệ' ||
+        str === 'lien he'
+      );
+    },
+    getCatalogLinkForValue(value) {
+      const query = { category: value };
+      const productType = this.product?.productType;
+      if (productType) {
+        query.productType = productType;
+      }
+      return { name: 'catalog', query };
+    },
     getImageCounts() {
       const mainCount = (this.images && this.images.length) ? this.images.length : (this.product?.images?.length || 0);
       const perspectiveCount = (this.images_perspective && this.images_perspective.length) ? this.images_perspective.length : 0;
@@ -1755,7 +1812,7 @@ if (
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
   padding: 8px;
   background: white;
@@ -1770,16 +1827,28 @@ if (
 }
 
 .cert-icon {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
+  font-size: 1.6rem;
+  color: #971b1e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
 }
 
 .cert-label {
-  font-size: 0.85rem;
-  color: #666;
   text-align: center;
-  font-weight: 500;
+}
+
+.cert-name {
+  font-size: 0.85rem;
+  color: #222;
+  font-weight: 600;
+}
+
+.cert-value {
+  font-size: 0.82rem;
+  color: #666;
 }
 
 @media (max-width: 768px) {
@@ -1793,12 +1862,17 @@ if (
   }
 
   .cert-icon {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    font-size: 1.4rem;
   }
 
-  .cert-label {
+  .cert-name {
     font-size: 0.8rem;
+  }
+
+  .cert-value {
+    font-size: 0.78rem;
   }
 }
 
