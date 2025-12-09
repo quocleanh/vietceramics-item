@@ -1,4 +1,5 @@
 name = "vietceramics-item"
+main = "worker/index.js"
 compatibility_date = "2025-12-05"
 
 [assets]
@@ -7,3 +8,9 @@ directory = "frontend/dist"
 [[routes]]
 pattern = "item.ecor.vn"
 custom_domain = true
+
+# Để lưu token bền vững, tạo KV namespace rồi thêm:
+# [[kv_namespaces]]
+# binding = "QUOTE_KV"
+# id = "your_prod_kv_id"
+# preview_id = "your_dev_kv_id"

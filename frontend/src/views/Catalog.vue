@@ -879,10 +879,10 @@ const buildSharedColors = () => {
     const normalized = name.trim()
     if (!normalized) return
     if (skipColorNames.has(normalized.toLowerCase())) return
-    const id = slugify(normalized)
-    if (!id || map.has(id)) return
-    map.set(id, {
-      id,
+    const key = normalized.toLowerCase()
+    if (map.has(key)) return
+    map.set(key, {
+      id: normalized, // dùng đúng text hiển thị
       name: normalized,
       swatch: guessColorFromName(normalized)
     })

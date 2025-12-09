@@ -1473,6 +1473,7 @@ if (
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(151, 27, 30, 0.06);
+  border: 1px solid #f0f0f0;
 }
 
 .spec-key {
@@ -1486,6 +1487,35 @@ if (
 .spec-value {
   color: #222;
   width: 60%;
+  padding: 12px;
+}
+
+.spec-value a {
+  color: #971b1e;
+  font-weight: 600;
+  text-decoration: none;
+  position: relative;
+}
+
+.spec-value a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: rgba(151, 27, 30, 0.35);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.spec-value a:hover {
+  color: #b31f23;
+}
+
+.spec-value a:hover::after {
+  transform: scaleX(1);
 }
 
 @media (max-width: 768px) {

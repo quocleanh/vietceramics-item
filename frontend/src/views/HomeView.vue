@@ -152,7 +152,7 @@ export default {
         },
         {
           id: 'tbvs',
-          name: 'Thiết bị vệ sinh phòng tắm',
+          name: 'Thiết bị vệ sinh',
           productType: 'thiết bị vệ sinh',
           image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif'
         },
@@ -548,16 +548,24 @@ export default {
 
 /* Space cards styling */
 .spaces-section {
-  padding: 2rem 0;
-  margin: 0 auto;
-  max-width: 1200px;
+     padding: 2rem 0;
+    padding-top: 21px !important;
+    margin: 0 auto;
+    max-width: 1200px;
 }
 
 .spaces-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 0.5rem;
-  padding: 0 1rem;
+    display: flex;
+    /* grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); */
+    gap: 1.5rem;
+    padding: 0 1rem;
+    /* width: 50%; */
+    justify-content: center;
+    align-items: flex-end;
+    text-align: center;
+    flex-direction: row;
+    flex-wrap: nowrap;
+
 }
 
 .space-item {

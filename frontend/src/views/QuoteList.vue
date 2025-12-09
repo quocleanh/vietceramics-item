@@ -58,10 +58,6 @@
               <i class="fi fi-br-share"></i>
               <span>Chia sẻ</span>
             </button>
-            <button class="btn-create-quote" @click="createQuote">
-              <i class="fi fi-br-file-invoice"></i>
-              <span>Tạo báo giá</span>
-            </button>
           </div>
         </div>
       </div>
@@ -96,11 +92,13 @@
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script>
 import QrcodeVue from 'qrcode.vue'
+import axios from 'axios'
 
 export default {
   name: 'QuoteList',
@@ -110,8 +108,21 @@ export default {
   data() {
     return {
       quoteItems: [],
+      memoryQuoteItems: [],
       showSharePopup: false,
-      shareUrl: ''
+      shareUrl: '',
+      sampleItems: [
+        {
+          id: 'sample-1',
+          name: 'Sản phẩm mẫu',
+          code: '4674T0R1',
+          image: 'https://placehold.co/120x120?text=Sample',
+          size: '56x37x35.5cm',
+          unit: 'cái',
+          quantity: 1,
+          origin: 'Đức'
+        }
+      ]
     };
   },
   created() {
@@ -123,9 +134,36 @@ export default {
     }
   },
   methods: {
+    safeReadStorage(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (err) {
+        return null;
+      }
+    },
+    safeWriteStorage(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
     loadQuoteItems() {
-      const items = localStorage.getItem('quoteItems');
-      this.quoteItems = items ? JSON.parse(items) : [];
+      const stored = this.safeReadStorage('quoteItems');
+      if (stored) {
+        try {
+          this.quoteItems = JSON.parse(stored);
+          this.memoryQuoteItems = [...this.quoteItems];
+          return;
+        } catch (err) {
+          console.warn('Lỗi parse localStorage, fallback bộ nhớ.', err);
+        }
+      }
+      // Fallback bộ nhớ hoặc dữ liệu mẫu khi trống
+      this.quoteItems = this.memoryQuoteItems.length
+        ? [...this.memoryQuoteItems]
+        : [...this.sampleItems];
     },
     removeItem(index) {
       this.quoteItems.splice(index, 1);
@@ -138,11 +176,11 @@ export default {
       }
     },
     saveQuoteItems() {
-      localStorage.setItem('quoteItems', JSON.stringify(this.quoteItems));
-    },
-    createQuote() {
-      // TODO: Implement quote creation logic
-      console.log('Creating quote with items:', this.quoteItems);
+      const payload = JSON.stringify(this.quoteItems);
+      this.memoryQuoteItems = [...this.quoteItems];
+      if (!this.safeWriteStorage('quoteItems', payload)) {
+        console.warn('Không thể ghi localStorage, lưu tạm trong bộ nhớ.');
+      }
     },
     shareQuote() {
       if (!this.quoteItems.length) {
@@ -201,11 +239,37 @@ export default {
       } catch (error) {
         console.error('Error decoding shared quote:', error);
       }
+    },
+    formatNumber(num) {
+      const parsed = Number(num);
+      return Number.isNaN(parsed) ? '1,00' : parsed.toLocaleString('vi-VN', { minimumFractionDigits: 2 });
+    },
+    formatDate(date = new Date()) {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    },
+    getUserInfo() {
+      try {
+        const raw = localStorage.getItem('user');
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (err) {
+        return null;
+      }
     }
   },
   computed: {
     totalItems() {
       return this.quoteItems.length;
+    },
+    quoteCode() {
+      return (this.quoteItems[0]?.code || 'VC') + '-' + Math.random().toString(36).slice(2, 6);
+    },
+    userInfo() {
+      return this.getUserInfo();
     }
   }
 };
@@ -415,6 +479,12 @@ export default {
   transform: translateY(-2px);
 }
 
+.btn-create-quote[disabled] {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 @media (max-width: 768px) {
   .page-title {
     font-size: 1.5rem;
@@ -502,6 +572,54 @@ export default {
   color: #971b1e;
   margin: 0;
 }
+
+.pdf-form-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.pdf-form {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.pdf-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pdf-form-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #971b1e;
+}
+
+.pdf-form-body .form-control {
+  width: 100%;
+}
+
+.pdf-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 
 .btn-close {
   background: none;
@@ -631,4 +749,4 @@ export default {
 .total-warning i {
   font-size: 1rem;
 }
-</style> 
+</style>
