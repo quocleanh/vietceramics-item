@@ -6,6 +6,9 @@ const rawCdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'https://static.supe
 const cdnBaseUrl = rawCdnBaseUrl.endsWith('/') ? rawCdnBaseUrl : `${rawCdnBaseUrl}/`;
 const maxImageVariants = 10;
 const fieldRows = fieldDefinitions?.rows || [];
+const priceApiToken = (import.meta.env.VITE_PRICE_API_TOKEN || '').trim() ||
+  'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKV1RTZXJ2aWNlQWNjZXNzVG9rZW4iLCJpYXQiOiI3LzI1LzIwMjQgNzoxODoyNiBBTSIsIkRpc3BsYXlOYW1lIjoiTMOqIEFuaCBRdeG7kWMiLCJVc2VyTmFtZSI6InF1b2NsYSIsIkVtYWlsIjoiIiwiZXhwIjoxODA4MjkxOTA2LCJpc3MiOiJKV1RBdXRoZW50aWNhdGlvblNlcnZlciIsImF1ZCI6IkpXVFNlcnZpY2VQb3N0bWFuQ2xpZW50In0.3G0rhhEoCLx6a8hur1OFSP0F6SkS3xvMVy9jfh0kbP8';
+const DEFAULT_SPEC_PLACEHOLDER = 'Đang cập nhật';
 const fieldLabelMap = fieldRows.reduce((acc, row) => {
   const key = row['Tên MISA'];
   const label = row['Tên Trường MISA'] || key;
@@ -14,9 +17,9 @@ const fieldLabelMap = fieldRows.reduce((acc, row) => {
 }, {});
 
 const formatCurrency = (value) => {
-  if (value === null || value === undefined || value === '') return '';
+  if (value === null || value === undefined || value === '') return 'Liên hệ';
   const number = Number(value);
-  if (Number.isNaN(number)) return '';
+  if (Number.isNaN(number) || number <= 0) return 'Liên hệ';
   return number.toLocaleString('vi-VN') + 'đ';
 };
 const normalizePrice = (value) => {
@@ -39,10 +42,9 @@ const buildSpecsFromDefinitions = (item) => {
   fieldRows.forEach(row => {
     const key = row['Tên MISA'];
     const label = fieldLabelMap[key] || key;
+    if (!key || !label) return;
     const value = valueToDisplay(item[key]);
-    if (key && value !== null) {
-      specs[label] = value;
-    }
+    specs[label] = value !== null ? value : DEFAULT_SPEC_PLACEHOLDER;
   });
   return specs;
 };
@@ -68,8 +70,61 @@ const filterExistingImages = async (urls) => {
   const results = await Promise.all(urls.map(async (url) => (await imageExists(url) ? url : null)));
   return results.filter(Boolean);
 };
+const normalizeLotStatus = (lot) => {
+  const statusFields = [
+    lot?.status,
+    lot?.Status,
+    lot?.status_text,
+    lot?.statusText,
+    lot?.StatusText
+  ].filter(Boolean);
+
+  const statusStr = statusFields
+    .map(val => String(val).toLowerCase())
+    .join(' ');
+
+  const isSoldFlag = lot?.isSold === true || lot?.is_sold === true || statusStr.includes('sold');
+  if (isSoldFlag || statusStr.includes('hết') || statusStr.includes('het') || statusStr.includes('out')) {
+    return 'sold';
+  }
+  return 'available';
+};
+const mapLotPrices = (rawLots = []) => {
+  if (!Array.isArray(rawLots)) return [];
+  return rawLots.map((lot, idx) => {
+    const code = lot.lotCode || lot.code || lot.LotCode || lot.Code || lot.lot_code || `Lô ${idx + 1}`;
+    const priceValue = lot.price ?? lot.Price ?? lot.unit_price ?? lot.UnitPrice ?? null;
+    return {
+      code,
+      price: formatCurrency(priceValue),
+      status: normalizeLotStatus(lot)
+    };
+  });
+};
 
 export const productService = {
+  /**
+   * Lấy giá theo lô của sản phẩm
+   * @param {string} itemCode
+   * @returns {Promise<Array>}
+   */
+  async getLotPrices(itemCode) {
+    if (!itemCode) return [];
+    try {
+      const headers = priceApiToken ? { Authorization: priceApiToken } : {};
+      const response = await axios.get(`${apiBaseUrl}/Products/PricesByCode`, {
+        params: { itemNo: itemCode },
+        headers
+      });
+      const rawLots = Array.isArray(response.data?.data)
+        ? response.data.data
+        : (Array.isArray(response.data) ? response.data : []);
+      return mapLotPrices(rawLots);
+    } catch (error) {
+      console.warn('Error fetching lot prices:', error);
+      return [];
+    }
+  },
   /**
    * Lấy thông tin chi tiết sản phẩm
    * @param {string} productId - ID của sản phẩm
@@ -131,6 +186,14 @@ export const productService = {
       const originalPriceFormatted = hasSalePricing && priceBaseValue !== null ? formatCurrency(priceBaseValue) : '';
       const specs = buildSpecsFromDefinitions(item);
 
+      // Lấy giá theo lô
+      let lotPrices = [];
+      try {
+        lotPrices = await this.getLotPrices(code);
+      } catch (err) {
+        console.warn('getLotPrices failed, continue without lot data', err);
+      }
+
       // Map API fields to UI model
       return {
         id: code,
@@ -161,7 +224,7 @@ export const productService = {
         },
         images: [],
         images_real: [],
-        lotPrices: [],
+        lotPrices,
         /// giảm định data comboItems
         comboItems: [ 
         ]

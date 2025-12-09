@@ -118,7 +118,7 @@
         </div>
 
         <!-- Lot Price Section -->
-        <div class="lot-price-section mb-4">
+        <div v-if="hasLotPrices" class="lot-price-section mb-4">
           <div class="lot-price-header" @click="toggleLotPrice">
             <h3 class="section-title">Giá theo lô</h3>
             <i class="fi" :class="showLotPrice ? 'fi-br-angle-up' : 'fi-br-angle-down'"></i>
@@ -169,7 +169,10 @@
             </div>
           </div>
           <!-- Thương hiệu -->
-          <div class="info-item" v-if="isLoggedIn">
+          <div
+            class="info-item"
+            v-if="showBrandPublic"
+          >
             <i class="fi fi-br-bookmark"></i>
             <div class="info-content">
               <div class="info-label">Thương hiệu</div>
@@ -543,6 +546,14 @@ export default {
         }
       }
       return false;
+    },
+    hasLotPrices() {
+      return Array.isArray(this.product?.lotPrices) && this.product.lotPrices.length > 0;
+    },
+    showBrandPublic() {
+      const type = (this.product?.productType || '').toLowerCase();
+      const isSanitary = type.includes('thiết bị vệ sinh') || type === 'bath';
+      return isSanitary || this.isLoggedIn;
     }
   },
   methods: {
@@ -619,10 +630,8 @@ if (
         this.product = await productService.getProductDetail(this.$route.params.id);
 
         // Ẩn thông tin nhạy cảm nếu chưa đăng nhập
-        if (!this.isLoggedIn) {
-          this.product.specifications['Thương hiệu'] = 'Đăng nhập để xem thông tin';
-          this.product.specifications['Xuất xứ'] = 'Đăng nhập để xem thông tin';
-        }
+        // Hiển thị bảng giá theo lô nếu có dữ liệu
+        this.showLotPrice = this.hasLotPrices;
 
         // Tải hình ảnh sau khi có thông tin sản phẩm
         await this.loadImages();
@@ -639,6 +648,10 @@ if (
       } finally {
         this.loading = false;
       }
+    },
+    toggleLotPrice() {
+      if (!this.hasLotPrices) return;
+      this.showLotPrice = !this.showLotPrice;
     },
 
     // Chọn thumbnail
@@ -1063,7 +1076,10 @@ if (
       return 0;
     },
     formatPrice(value) {
-      const number = Number(value) || 0;
+      const number = Number(value);
+      if (!number || Number.isNaN(number) || number <= 0) {
+        return 'Liên hệ';
+      }
       return number.toLocaleString('vi-VN') + 'đ';
     },
     handleMainImageLoad() {

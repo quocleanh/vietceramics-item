@@ -234,18 +234,21 @@
                   <h5 class="card-title">{{ product.name }}</h5>
                   <p class="card-text">Mã: {{ product.itemCode }}</p>
                   <div class="price-block">
-                    <span 
-                      v-if="product.isSale && product.priceSale !== null" 
-                      class="price-sale"
-                    >
-                      {{ formatPrice(product.priceSale) }}
-                    </span>
-                    <span 
-                      v-if="product.priceBase !== null" 
-                      :class="['price-base', { 'text-decoration-line-through': product.isSale && product.priceSale !== null }]"
-                    >
-                      {{ formatPrice(product.priceBase) }}
-                    </span>
+                    <template v-if="product.priceSale !== null || product.priceBase !== null">
+                      <span 
+                        v-if="product.isSale && product.priceSale !== null" 
+                        class="price-sale"
+                      >
+                        {{ formatPrice(product.priceSale) }}
+                      </span>
+                      <span 
+                        v-if="product.priceBase !== null" 
+                        :class="['price-base', { 'text-decoration-line-through': product.isSale && product.priceSale !== null }]"
+                      >
+                        {{ formatPrice(product.priceBase) }}
+                      </span>
+                    </template>
+                    <span v-else class="price-contact">Liên hệ</span>
                   </div>
                   <router-link
                     class="btn btn-primary"
@@ -1477,11 +1480,15 @@ export default {
       return 'https://placehold.co/100/971b1e/white?text=%0AKH%C3%94NG%20C%C3%93%20H%C3%8CNH%20%E1%BA%A2NH&font=Roboto'
     },
     formatPrice(price) {
+      const number = Number(price);
+      if (!number || Number.isNaN(number) || number <= 0) {
+        return 'Liên hệ'
+      }
       return new Intl.NumberFormat('vi-VN', {
         style: 'currency',
         currency: 'VND',
         maximumFractionDigits: 0
-      }).format(price)
+      }).format(number)
     },
     setCategoryFilter(categoryId) {
       if (this.activeCategoryId === categoryId) return
@@ -1872,6 +1879,10 @@ export default {
 .price-base {
   color: #6c757d;
   font-size: 0.95rem;
+}
+.price-contact {
+  color: #971b1e;
+  font-weight: 700;
 }
 
 .btn-primary {
