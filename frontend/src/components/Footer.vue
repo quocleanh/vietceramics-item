@@ -55,7 +55,7 @@
           <a href="https://www.facebook.com/vietceramics" target="_blank" class="social-icon facebook">
             <i class="fi fi-brands-facebook"></i>
           </a>
-          <a href="https://www.instagram.com/vietceramics" target="_blank" class="social-icon instagram">
+          <a href="https://www.instagram.com/vietceramics.official" target="_blank" class="social-icon instagram">
             <i class="fi fi-brands-instagram"></i>
           </a>
           <a href="https://www.youtube.com/vietceramics" target="_blank" class="social-icon youtube">

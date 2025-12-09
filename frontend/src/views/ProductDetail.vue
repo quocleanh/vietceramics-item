@@ -3,8 +3,14 @@
     <!-- Breadcrumb -->
     <nav class="breadcrumb-nav mb-4">
       <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
-        <li class="breadcrumb-item"><a :href="`/danh-muc?productType=${product.specifications['Loại sản phẩm']}`">{{ product.specifications['Loại sản phẩm'] }}</a></li>
+        <li class="breadcrumb-item">
+          <router-link to="/">Trang chủ</router-link>
+        </li>
+        <li class="breadcrumb-item">
+          <router-link :to="{ name: 'catalog', query: { productType: product.specifications['Loại sản phẩm'] } }">
+            {{ product.specifications['Loại sản phẩm'] }}
+          </router-link>
+        </li>
         <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
       </ol>
     </nav>
@@ -17,17 +23,17 @@
             <!-- Image Type Selection Overlay -->
             <div class="image-type-overlay">
               <div class="image-type-buttons">
-                <button class="type-btn" :class="{ active: currentImageType === 'product' }"
+                <button v-if="hasProductImages" class="type-btn" :class="{ active: currentImageType === 'product' }"
                   @click.stop="jumpToImageType('product')">
                   <i class="fi fi-br-box"></i>
                   <span>Hình sản phẩm</span>
                 </button>
-                <button class="type-btn" :class="{ active: currentImageType === 'perspective' }"
+                <button v-if="hasPerspectiveImages" class="type-btn" :class="{ active: currentImageType === 'perspective' }"
                   @click.stop="jumpToImageType('perspective')">
                   <i class="fi fi-br-layout-fluid"></i>
                   <span>Hình phối cảnh</span>
                 </button>
-                <button class="type-btn" :class="{ active: currentImageType === 'real' }"
+                <button v-if="hasRealImages" class="type-btn" :class="{ active: currentImageType === 'real' }"
                   @click.stop="jumpToImageType('real')">
                   <i class="fi fi-br-camera"></i>
                   <span>Hình thực tế</span>
@@ -459,6 +465,22 @@ export default {
         ...realImages
       ];
     },
+    hasProductImages() {
+      return (this.images && this.images.length) || (this.product?.images?.length);
+    },
+    hasPerspectiveImages() {
+      return (this.images_perspective && this.images_perspective.length);
+    },
+    hasRealImages() {
+      return (this.images_real && this.images_real.length) || (this.product?.images_real?.length);
+    },
+    availableImageTypes() {
+      const types = [];
+      if (this.hasProductImages) types.push('product');
+      if (this.hasPerspectiveImages) types.push('perspective');
+      if (this.hasRealImages) types.push('real');
+      return types;
+    },
     // Lấy hình ảnh hiện tại đang hiển thị
     currentImage() {
       return this.allImages[this.currentImageIndex] || '';
@@ -524,6 +546,18 @@ export default {
     }
   },
   methods: {
+    getImageCounts() {
+      const mainCount = (this.images && this.images.length) ? this.images.length : (this.product?.images?.length || 0);
+      const perspectiveCount = (this.images_perspective && this.images_perspective.length) ? this.images_perspective.length : 0;
+      const realCount = (this.images_real && this.images_real.length) ? this.images_real.length : (this.product?.images_real?.length || 0);
+      return { mainCount, perspectiveCount, realCount };
+    },
+    getStartIndexForType(type) {
+      const { mainCount, perspectiveCount } = this.getImageCounts();
+      if (type === 'product') return 0;
+      if (type === 'perspective') return mainCount;
+      return mainCount + perspectiveCount;
+    },
     async loadImages() {
       try {
         const productCode = this.product?.itemCode || this.product?.No_ || this.$route.params.id;
@@ -560,6 +594,13 @@ if (
 }
 
         this.currentImageIndex = 0;
+        // Đảm bảo currentImageType luôn trỏ đến loại ảnh có dữ liệu
+        const availableTypes = this.availableImageTypes;
+        if (!availableTypes.includes(this.currentImageType)) {
+          this.currentImageType = availableTypes[0] || 'product';
+        }
+        this.currentImageIndex = this.getStartIndexForType(this.currentImageType);
+
         this.imageLoading = true;
         this.thumbLoaded = {};
         this.$nextTick(() => this.updateThumbArrows());
@@ -632,14 +673,9 @@ if (
 
     // Chuyển đổi giữa các loại hình ảnh
     jumpToImageType(type) {
+      if (!this.availableImageTypes.includes(type)) return;
       this.currentImageType = type;
-      if (type === 'product') {
-        this.currentImageIndex = 0;
-      } else if (type === 'perspective') {
-        this.currentImageIndex = this.product?.images?.length || 0;
-      } else {
-        this.currentImageIndex = (this.product?.images?.length || 0) + (this.images_perspective?.length || 0);
-      }
+      this.currentImageIndex = this.getStartIndexForType(type);
       this.$nextTick(() => {
         this.scrollActiveThumbIntoView();
       });

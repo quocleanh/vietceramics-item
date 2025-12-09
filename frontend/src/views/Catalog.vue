@@ -459,6 +459,7 @@
 <script>
 import axios from 'axios'
 import { updateSeoMeta } from '@/utils/seo'
+import { productService } from '@/services/productService'
 
 const rawColorData = `
 Màu nâu nhạt
@@ -1400,9 +1401,32 @@ export default {
       }
     },
     handleImageError(event, productId) {
-      // Replace broken image with placeholder
-      event.target.src = 'https://placehold.co/100/971b1e/white?text=%0AKH%C3%94NG%20C%C3%93%20H%C3%8CNH%20%E1%BA%A2NH&font=Roboto'
-      this.imageLoaded[productId] = true
+      const imgEl = event.target
+      const product = this.products.find(p => p.id === productId)
+
+      // Nếu đã thử fallback mà vẫn lỗi, dùng placeholder luôn
+      if (!product || product.fallbackAttempted) {
+        imgEl.src = this.getPlaceholderImage()
+        this.imageLoaded[productId] = true
+        return
+      }
+
+      product.fallbackAttempted = true
+
+      // Thử lấy hình phối cảnh trước, sau đó tới hình thực tế
+      this.resolveFallbackImage(product)
+        .then((fallbackSrc) => {
+          if (fallbackSrc) {
+            imgEl.src = fallbackSrc
+          } else {
+            imgEl.src = this.getPlaceholderImage()
+            this.imageLoaded[productId] = true
+          }
+        })
+        .catch(() => {
+          imgEl.src = this.getPlaceholderImage()
+          this.imageLoaded[productId] = true
+        })
     },
     handleImageLoad(event) {
       // Đánh dấu ảnh đã load xong
@@ -1419,6 +1443,38 @@ export default {
       img.style.height = '100%';
       img.style.objectFit = 'cover';
       img.style.objectPosition = 'center';
+    },
+    async resolveFallbackImage(product) {
+      if (product.cachedFallbackImage !== undefined) {
+        return product.cachedFallbackImage
+      }
+
+      const code = product.itemCode || product.id
+      if (!code) {
+        product.cachedFallbackImage = null
+        return null
+      }
+
+      const collectionName = product.collectionName || ''
+
+      // Ưu tiên hình phối cảnh, sau đó hình thực tế
+      const perspectiveImages = await productService.getProductImages(code, 'perspective', collectionName)
+      if (perspectiveImages && perspectiveImages.length) {
+        product.cachedFallbackImage = perspectiveImages[0]
+        return product.cachedFallbackImage
+      }
+
+      const realImages = await productService.getProductImages(code, 'real', collectionName)
+      if (realImages && realImages.length) {
+        product.cachedFallbackImage = realImages[0]
+        return product.cachedFallbackImage
+      }
+
+      product.cachedFallbackImage = null
+      return null
+    },
+    getPlaceholderImage() {
+      return 'https://placehold.co/100/971b1e/white?text=%0AKH%C3%94NG%20C%C3%93%20H%C3%8CNH%20%E1%BA%A2NH&font=Roboto'
     },
     formatPrice(price) {
       return new Intl.NumberFormat('vi-VN', {
