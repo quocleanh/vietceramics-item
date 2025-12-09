@@ -70,7 +70,10 @@
                           {{ item.product_name }}   
                         </router-link>
                         <div class="collection-name">
-                          <router-link :to="'/danh-muc?collection=' + item.collectionName" class="collection-name">
+                          <router-link
+                            :to="buildCollectionLink(item)"
+                            class="collection-name"
+                          >
                             Bộ sưu tập: {{ item.collectionName }}
                           </router-link>
                         </div>
@@ -241,6 +244,7 @@ export default {
             id: item.id,
             product_code: item.product_code,
             product_name: item.product_name,
+            product_category: item.product_category || '',
             collectionName: item.custom_field121 || item.product_category || item.custom_field68 || 'Chưa phân loại',
             thumbnail: "https://static.superstone.com.vn/products-test/hinh-gach/" + item.product_code + ".jpg"
           }))
@@ -262,6 +266,21 @@ export default {
     },
     closeUserMenu() {
       this.showUserMenu = false
+    },
+    buildCollectionLink(item) {
+      const collection = item?.collectionName || '';
+      const categoryRaw = item?.product_category || '';
+      const isTile = categoryRaw.toLowerCase().includes('gạch');
+
+      const query = {};
+      if (isTile) {
+        query.productType = 'gạch';
+      }
+      if (collection) {
+        query.collection = collection;
+      }
+
+      return { name: 'catalog', query };
     },
     handleLogout() {
       localStorage.removeItem('user')

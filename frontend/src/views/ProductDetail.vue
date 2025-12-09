@@ -162,10 +162,10 @@
             </div>
           </div>
           <div class="info-item">
-            <i class="fi fi-br-shield-check"></i>
+            <i class="fi  fi-br-ruler-combined"></i>
             <div class="info-content">
-              <div class="info-label">Bảo hành</div>
-              <div class="info-value">{{ product.specifications['Bảo hành'] }}</div>
+              <div class="info-label">Kích thước</div>
+              <div class="info-value">{{ product.specifications['Kích Thước Mô Phỏng']  || product.specifications['Quy Cách'] }}</div>
             </div>
           </div>
           <!-- Thương hiệu -->
@@ -607,8 +607,10 @@ export default {
       );
     },
     getCatalogLinkForValue(value) {
-      const query = { category: value };
-      const productType = this.product?.productType;
+      const query = { collection: value };
+      const productType =
+        this.product?.specifications?.['Loại sản phẩm'] ||
+        this.product?.productType;
       if (productType) {
         query.productType = productType;
       }
