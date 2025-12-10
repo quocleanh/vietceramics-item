@@ -531,7 +531,7 @@ export default {
   font-size: 16px;
 }
 .section {
-  max-width: 1200px;
+  
 }
 .search-box {
   width: 100%;
