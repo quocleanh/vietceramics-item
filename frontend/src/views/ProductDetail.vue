@@ -110,12 +110,12 @@
         </div>
 
         <!-- Add to favorite button -->
-        <!-- <div class="favorite-btn-wrapper mb-4 d-flex flex-start">
+        <div class="favorite-btn-wrapper mb-4 d-flex flex-start">
           <button class="btn-add-to-quote" @click="addToQuote">
             <i class="fi fi-br-file-invoice"></i>
             <span>Thêm vào báo giá</span>
           </button>
-        </div> -->
+        </div>
 
         <!-- Lot Price Section -->
         <div v-if="hasLotPrices" class="lot-price-section mb-4">
@@ -755,6 +755,23 @@ if (
 
     // Thêm sản phẩm vào báo giá
     addToQuote() {
+      // thông báo tính năng đang phát triểm
+
+      this.toast.error('Tính năng đang được phát triển', {
+        timeout: 3000,
+        closeOnClick: true,
+        pauseOnFocusLoss: true,
+        pauseOnHover: true,
+        draggable: true,
+        draggablePercent: 0.6,
+        showCloseButtonOnHover: false,
+        hideProgressBar: false,
+        closeButton: 'button',
+        icon: true,
+        rtl: false
+      });
+
+      returnl
       if (!this.product) return;
 
       // Kiểm tra đăng nhập
