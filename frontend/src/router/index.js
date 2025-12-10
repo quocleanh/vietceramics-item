@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import QuoteList from '../views/QuoteList.vue'
 
-const routes = [
+export const routes = [
   {
     path: '/',
     name: 'home',
@@ -40,29 +40,18 @@ const routes = [
   }
 ]
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
-  scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition
-    } else {
-      return { top: 0 }
-    }
+export const scrollBehavior = (to, from, savedPosition) => {
+  if (savedPosition) {
+    return savedPosition
   }
-})
+  return { top: 0 }
+}
 
-// Remove navigation guard
-// router.beforeEach((to, from, next) => {
-//   const publicPages = ['/login']
-//   const authRequired = !publicPages.includes(to.path)
-//   const loggedIn = localStorage.getItem('user')
-// 
-//   if (authRequired && !loggedIn) {
-//     return next('/login')
-//   }
-// 
-//   next()
-// })
+export const createAppRouter = () =>
+  createRouter({
+    history: createWebHistory(import.meta.env.BASE_URL),
+    routes,
+    scrollBehavior
+  })
 
-export default router 
+export default createAppRouter

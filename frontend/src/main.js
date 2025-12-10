@@ -1,8 +1,9 @@
 import './assets/main.css'
 
-import { createApp } from 'vue'
+import { nextTick } from 'vue'
+import { ViteSSG } from 'vite-ssg'
 import App from './App.vue'
-import router from './router'
+import { routes, scrollBehavior } from './router'
 import Toast from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
@@ -13,8 +14,6 @@ import { BootstrapVue3 } from 'bootstrap-vue-3'
 
 // Import Font Awesome
 import '@fortawesome/fontawesome-free/css/all.css'
-
-const app = createApp(App)
 
 const toastOptions = {
   position: 'top-right',
@@ -31,47 +30,62 @@ const toastOptions = {
   rtl: false
 }
 
-// Sử dụng plugins
-app.use(router)
-app.use(BootstrapVue3)
-app.use(Toast, toastOptions)
+export const createApp = ViteSSG(
+  App,
+  {
+    routes,
+    base: import.meta.env.BASE_URL,
+    scrollBehavior
+  },
+  ({ app, router }) => {
+    // Plugins
+    app.use(BootstrapVue3)
+    app.use(Toast, toastOptions)
 
-// Directive v-lazy cho lazy loading hình ảnh
-app.directive('lazy', {
-  mounted(el, binding) {
-    function loadImage() {
-      el.src = binding.value
-      el.addEventListener('load', () => {
-        if (el.complete && el.naturalHeight !== 0) {
-          // Khi ảnh load xong thì loại bỏ class loading nếu có
-          el.classList.remove('lazy-loading')
-          el.classList.add('lazy-loaded')
+    // Directive v-lazy cho lazy loading hình ảnh
+    app.directive('lazy', {
+      mounted(el, binding) {
+        function loadImage() {
+          el.src = binding.value
+          el.addEventListener('load', () => {
+            if (el.complete && el.naturalHeight !== 0) {
+              // Khi ảnh load xong thì loại bỏ class loading nếu có
+              el.classList.remove('lazy-loading')
+              el.classList.add('lazy-loaded')
+            }
+          })
         }
-      })
-    }
 
-    function handleIntersect(entries, observer) {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
+        function handleIntersect(entries, observer) {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              loadImage()
+              observer.unobserve(el)
+            }
+          })
+        }
+
+        // Sử dụng Intersection Observer API nếu trình duyệt hỗ trợ
+        if ('IntersectionObserver' in window) {
+          const observer = new IntersectionObserver(handleIntersect, {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+          })
+          observer.observe(el)
+        } else {
+          // Fallback cho trình duyệt không hỗ trợ Intersection Observer
           loadImage()
-          observer.unobserve(el)
         }
-      })
-    }
+      }
+    })
 
-    // Sử dụng Intersection Observer API nếu trình duyệt hỗ trợ
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver(handleIntersect, {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-      })
-      observer.observe(el)
-    } else {
-      // Fallback cho trình duyệt không hỗ trợ Intersection Observer
-      loadImage()
-    }
+    router.isReady().then(() => {
+      if (typeof document !== 'undefined') {
+        nextTick(() => {
+          document.dispatchEvent(new Event('app-rendered'))
+        })
+      }
+    })
   }
-})
-
-app.mount('#app')
+)
