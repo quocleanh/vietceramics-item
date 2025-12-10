@@ -37,8 +37,8 @@ const ensureLinkTag = (rel, href) => {
 
 export const updateSeoMeta = ({
   title,
-  description = 'Khám phá hệ sinh thái gạch ốp lát, thiết bị vệ sinh và ván sàn cao cấp Vietceramics.',
-  keywords = 'Vietceramics,gạch cao cấp,thiết bị vệ sinh,ván sàn',
+  description = 'Khám phá hệ sinh thái gạch ốp lát, thiết bị vệ sinh và Ván sàn cao cấp Vietceramics.',
+  keywords = 'Vietceramics,gạch cao cấp,thiết bị vệ sinh,Ván sàn',
   image,
   url,
   type = 'website',
