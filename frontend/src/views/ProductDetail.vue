@@ -110,12 +110,12 @@
         </div>
 
         <!-- Add to favorite button -->
-        <div class="favorite-btn-wrapper mb-4 d-flex flex-start">
+        <!-- <div class="favorite-btn-wrapper mb-4 d-flex flex-start">
           <button class="btn-add-to-quote" @click="addToQuote">
             <i class="fi fi-br-file-invoice"></i>
             <span>Thêm vào báo giá</span>
           </button>
-        </div>
+        </div> -->
 
         <!-- Lot Price Section -->
         <div v-if="hasLotPrices" class="lot-price-section mb-4">
@@ -652,7 +652,7 @@ if (
 
   const line1 = productName;                     // TÊN SẢN PHẨM (IN HOA, 1 dòng riêng)
   const line2 = 'KHÔNG CÓ HÌNH ẢNH';             // Dòng thông báo
-  const line3 =  ';         // Dòng chú thích nhỏ
+  const line3 = 'VUI LÒNG LIÊN HỆ QC ';         // Dòng chú thích nhỏ
 
   const placeholderText = encodeURIComponent(
     `${line1}\n${line2}\n${line3}`

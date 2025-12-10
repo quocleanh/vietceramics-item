@@ -63,9 +63,9 @@
                 <!-- Login bên phải - col-3 -->
                 <div class="col-md-3 d-flex justify-content-end">
                     <div class="header-buttons">
-                        <router-link class="btn btn-outline-light me-2" to="/quote-list">
+                        <!-- <router-link class="btn btn-outline-light me-2" to="/quote-list">
                             <i class="fi fi-br-file-invoice me-2"></i> Báo giá
-                        </router-link>
+                        </router-link> -->
                         <router-link to="/login" class="btn-login" v-if="!userData">
                             <i class="fi fi-br-user"></i>
                             <span>Đăng nhập</span>
@@ -77,14 +77,14 @@
                             </button>
                             <!-- Desktop Dropdown Menu -->
                             <div class="dropdown-menu" v-if="isMenuOpen">
-                                <router-link class="dropdown-item" to="/profile" @click="closeMenu">
+                                <!-- <router-link class="dropdown-item" to="/profile" @click="closeMenu">
                                     <i class="fi fi-br-user"></i>
                                     <span>Thông tin cá nhân</span>
-                                </router-link>
-                                <router-link class="dropdown-item" to="/orders" @click="closeMenu">
+                                </router-link> -->
+                                <!-- <router-link class="dropdown-item" to="/orders" @click="closeMenu">
                                     <i class="fi fi-br-shopping-cart"></i>
                                     <span>Đơn hàng</span>
-                    </router-link>
+                                </router-link> -->
                                 <button class="dropdown-item logout-btn" @click="handleLogout">
                                     <i class="fi fi-br-sign-out"></i>
                                     <span>Đăng xuất</span>
@@ -136,14 +136,14 @@
                                 </button>
                             </div>
                             <div class="mobile-menu-content">
-                                <router-link class="mobile-menu-item" to="/profile" @click="closeMenu">
+                                <!-- <router-link class="mobile-menu-item" to="/profile" @click="closeMenu">
                                     <i class="fi fi-br-user"></i>
                                     <span>Thông tin cá nhân</span>
-                                </router-link>
-                                <router-link class="mobile-menu-item" to="/orders" @click="closeMenu">
+                                </router-link> -->
+                                <!-- <router-link class="mobile-menu-item" to="/orders" @click="closeMenu">
                                     <i class="fi fi-br-shopping-cart"></i>
                                     <span>Đơn hàng</span>
-                                </router-link>
+                                </router-link> -->
                                 <button class="mobile-menu-item logout-btn" @click="handleLogout">
                                     <i class="fi fi-br-sign-out"></i>
                                     <span>Đăng xuất</span>

@@ -30,10 +30,10 @@
         <h3 class="section-title">Liên kết nhanh</h3>
         <ul class="link-list">
           <li><router-link to="/"><i class="fi fi-br-home"></i> Trang chủ</router-link></li>
-          <li><router-link to="/products"><i class="fi fi-br-box"></i> Sản phẩm</router-link></li>
-          <li><router-link to="/about"><i class="fi fi-br-info"></i> Giới thiệu</router-link></li>
-          <li><router-link to="/contact"><i class="fi fi-br-address-book"></i> Liên hệ</router-link></li>
-          <li><router-link to="/quote-list"><i class="fi fi-br-file-invoice"></i> Báo giá</router-link></li>
+          <li><router-link to="/danh-muc"><i class="fi fi-br-box"></i> Sản phẩm</router-link></li>
+          <li><a target="_blank"  href="https://www.vietceramics.com/ve-chung-toi/"><i class="fi fi-br-info"></i> Giới thiệu</a></li>
+          <li><a target="_blank" href="https://www.vietceramics.com/lien-he-vietceramics/"><i class="fi fi-br-address-book"></i> Liên hệ</a></li>
+          <li><a  href="tel:0797 555 299"><i class="fi fi-br-file-invoice"></i> Báo giá</a></li>
         </ul>
       </div>
 
@@ -41,10 +41,9 @@
       <div class="footer-section product-categories">
         <h3 class="section-title">Danh mục sản phẩm</h3>
         <ul class="link-list">
-          <li><router-link to="/products/bath"><i class="fi fi-br-bath"></i> Thiết bị vệ sinh</router-link></li>
-          <li><router-link to="/products/tile"><i class="fi fi-br-cube"></i> Gạch ốp lát</router-link></li>
-          <li><router-link to="/products/wood"><i class="fi fi-br-tree"></i> Gỗ công nghiệp</router-link></li>
-          <li><router-link to="/products/accessories"><i class="fi fi-br-tools"></i> Phụ kiện</router-link></li>
+          <li><router-link to="/danh-muc?productType=thiết+bị+vệ+sinh"><i class="fi fi-br-bath"></i> Thiết bị vệ sinh</router-link></li>
+          <li><router-link to="/danh-muc?productType=gạch"><i class="fi fi-br-cube"></i> Gạch ốp lát</router-link></li>
+          <li><router-link to="/danh-muc?productType=ván+sàn"><i class="fi fi-br-tree"></i> Ván sàn</router-link></li>
         </ul>
       </div>
 
@@ -53,16 +52,19 @@
         <h3 class="section-title">Kết nối với chúng tôi</h3>
         <div class="social-icons">
           <a href="https://www.facebook.com/vietceramics" target="_blank" class="social-icon facebook">
-            <i class="fi fi-brands-facebook"></i>
+            <i class="fa-brands fa-facebook-f"></i>
           </a>
           <a href="https://www.instagram.com/vietceramics.official" target="_blank" class="social-icon instagram">
-            <i class="fi fi-brands-instagram"></i>
+            <i class="fa-brands fa-instagram"></i>
           </a>
-          <a href="https://www.youtube.com/vietceramics" target="_blank" class="social-icon youtube">
-            <i class="fi fi-brands-youtube"></i>
+          <a href="https://www.youtube.com/vietceramics.official" target="_blank" class="social-icon youtube">
+            <i class="fa-brands fa-youtube"></i>
           </a>
-          <a href="https://www.linkedin.com/company/vietceramics" target="_blank" class="social-icon linkedin">
-            <i class="fi fi-brands-linkedin"></i>
+          <a href="https://www.linkedin.com/company/company/viet-ceramics-international-joint-stock-company" target="_blank" class="social-icon linkedin">
+            <i class="fa-brands fa-linkedin-in"></i>
+          </a>
+          <a href="https://www.tiktok.com/@vietceramics_official" target="_blank" class="social-icon tiktok">
+            <i class="fa-brands fa-tiktok"></i>
           </a>
         </div>
       </div>
@@ -220,6 +222,10 @@ export default {
 
 .social-icon:hover {
   transform: translateY(-3px);
+}
+
+.social-icon.tiktok:hover {
+  background: linear-gradient(135deg, #25f4ee 0%, #000 50%, #fe2c55 100%);
 }
 
 .social-icon.facebook:hover {
