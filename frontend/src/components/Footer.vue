@@ -72,7 +72,7 @@
     <div class="footer-bottom">
       <div class="footer-bottom-content">
         <div class="copyright">
-          &copy; {{ new Date().getFullYear() }} Vet Ceramics. All rights reserved.
+          &copy; {{ new Date().getFullYear() }} Vetceramics. All rights reserved.
         </div>
       </div>
     </div>

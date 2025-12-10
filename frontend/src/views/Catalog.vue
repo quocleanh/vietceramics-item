@@ -463,6 +463,7 @@
 import axios from 'axios'
 import { updateSeoMeta } from '@/utils/seo'
 import { productService } from '@/services/productService'
+import { getFeaturedCategories, getSizeOptions } from '@/data/catalogFilters'
 
 const rawColorData = `
 Màu nâu nhạt
@@ -893,102 +894,6 @@ const buildSharedColors = () => {
 const sharedColorOptions = buildSharedColors()
 const cloneSharedColors = () => sharedColorOptions.map(color => ({ ...color }))
 
-const rawSizeData = `
-40 x 80
-16.5 x 16.5
-16.3 x 51.7
-90 x 90
-90 X 180
-7.5 x 30
-120 x 278
-50 x 120
-10 x 30
-30 x 60
-100 x 100
-80 x 160
-45 x 90
-75 X 150
-60 x 60
-30 x 30
-80 x 80
-11 x 54
-100 x 200
-120 x 120
-20 x 20
-30 x 120
-6 x 24
-120 x 280
-60 x 120
-15 x 90
-20 x 120
-`
-
-const sharedSizes = rawSizeData
-  .split('\n')
-  .map(item => item.trim())
-  .filter(Boolean)
-  .map(label => ({
-    id: label.toLowerCase(),
-    name: label
-  }))
-const cloneSharedSizes = () => sharedSizes.map(size => ({ ...size }))
-
-const rawFeaturedCategories = `
-Gạch gốm ốp lát
-Gạch cắt
-Van vòi Lavabo đặt bàn 1 lỗ
-Mặt nạ bộ trộn nước âm tường
-Linh kiện
-Lavabo đặt bàn
-Thanh treo khăn
-Van vòi lavabo gắn tường - phần lắp ngoài
-Gạch men ốp tường
-Giá treo giấy vệ sinh
-Bát sen gắn tường
-Các sản phẩm khác
-Van vòi bồn tắm đặt sàn
-Vòi xịt vệ sinh
-Sen tay
-Thanh trượt, gác sen, sen tay, dây, cục cấp nước
-Bồn tắm thường - tự đứng
-Móc treo
-Van vòi Lavabo đặt bàn 3 lỗ
-Bát sen gắn trần
-Sen tắm gắn trần - bộ phận lắp ngoài
-Bình đựng xà phòng
-Lọ / cốc
-Nắp bồn cầu thông thường
-Van vòi bồn tắm gắn thành bồn
-Ván sợi bằng gỗ
-Nút nhấn két nước âm tường
-Sen tắm hông
-Phụ kiện vòi nước lavabo
-Sen tay, dây sen, gác sen, cục cấp nước
-Cục cấp nước cho sen tay
-Khay đựng xà phòng
-Thân bồn cầu treo tường
-Gương
-Vòng treo khăn
-Bộ xả nhấn - lavabo có lổ xả tràn
-Van vòi Lavabo gắn tường
-Nẹp
-Giá treo áo
-Lavabo âm bàn
-`
-
-const featuredCategoryNames = rawFeaturedCategories
-  .split('\n')
-  .map(item => item.trim())
-  .filter(name => name && name.toLowerCase() !== 'null')
-
-const tileFeaturedNames = ['Gạch gốm ốp lát', 'Gạch cắt', 'Gạch men ốp tường']
-const nonTileFeaturedNames = featuredCategoryNames.filter(name => !tileFeaturedNames.includes(name))
-const toFeaturedOption = (name) => ({ id: name, name })
-const cloneFeaturedCategories = (type) => {
-  const source = type === 'gạch' ? tileFeaturedNames : nonTileFeaturedNames
-  return source.map(toFeaturedOption)
-}
-
 const rawCollections = `
 fVENTI20
 GOCCIA
@@ -1081,52 +986,52 @@ export default {
       imageLoaded: {},
       filters: {
         categories: [
-          { 
-            id: 'gạch', 
-            name: 'Gạch',
-            image: 'https://cdn-icons-gif.flaticon.com/10966/10966480.gif',
-            categories: cloneFeaturedCategories('gạch'),
-            collections: cloneSharedCollections(),
-            colors: cloneSharedColors(),
-            sizes: cloneSharedSizes()
-          },
-          { 
-            id: 'thiết bị vệ sinh', 
-            name: 'Thiết bị vệ sinh',
-            image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif',
-            categories: cloneFeaturedCategories('thiết bị vệ sinh'),
-            collections: [
-              { id: 'flow', name: 'Flow' },
-              { id: 'emporio shower', name: 'Emporio Shower' },
+        {
+          id: 'gạch', 
+          name: 'Gạch',
+          image: 'https://cdn-icons-gif.flaticon.com/10966/10966480.gif',
+          categories: getFeaturedCategories('gạch'),
+          collections: cloneSharedCollections(),
+          colors: cloneSharedColors(),
+          sizes: getSizeOptions()
+        },
+        { 
+          id: 'thiết bị vệ sinh', 
+          name: 'Thiết bị vệ sinh',
+          image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif',
+          categories: getFeaturedCategories('thiết bị vệ sinh'),
+          collections: [
+            { id: 'flow', name: 'Flow' },
+            { id: 'emporio shower', name: 'Emporio Shower' },
               { id: 'signature bath', name: 'Signature Bath' },
               { id: 'urban wellness', name: 'Urban Wellness' },
               { id: 'zen series', name: 'Zen Series' },
-              { id: 'artisan bath', name: 'Artisan Bath' },
-              { id: 'pure touch', name: 'Pure Touch' }
-            ],
-            colors: cloneSharedColors(),
-            sizes: cloneSharedSizes()
-          },
-          { 
-            id: 'sàn gỗ', 
-            name: 'Sàn gỗ',
-            image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
-            categories: cloneFeaturedCategories('sàn gỗ'),
-            collections: [
-              { id: 'signature wood', name: 'Signature Wood' },
-              { id: 'coastal wood', name: 'Coastal Wood' },
-              { id: 'herringbone studio', name: 'Herringbone Studio' },
-              { id: 'nordic oak', name: 'Nordic Oak' },
-              { id: 'urban rustic', name: 'Urban Rustic' },
-              { id: 'heritage plank', name: 'Heritage Plank' },
-              { id: 'eco deck', name: 'Eco Deck' }
-            ],
-            colors: cloneSharedColors(),
-            sizes: cloneSharedSizes()
-          }
-        ]
-      }
+            { id: 'artisan bath', name: 'Artisan Bath' },
+            { id: 'pure touch', name: 'Pure Touch' }
+          ],
+          colors: cloneSharedColors(),
+          sizes: getSizeOptions()
+        },
+        { 
+          id: 'sàn gỗ', 
+          name: 'Sàn gỗ',
+          image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
+          categories: getFeaturedCategories('sàn gỗ'),
+          collections: [
+            { id: 'signature wood', name: 'Signature Wood' },
+            { id: 'coastal wood', name: 'Coastal Wood' },
+            { id: 'herringbone studio', name: 'Herringbone Studio' },
+            { id: 'nordic oak', name: 'Nordic Oak' },
+            { id: 'urban rustic', name: 'Urban Rustic' },
+            { id: 'heritage plank', name: 'Heritage Plank' },
+            { id: 'eco deck', name: 'Eco Deck' }
+          ],
+          colors: cloneSharedColors(),
+          sizes: getSizeOptions()
+        }
+      ]
     }
+  }
   },
   computed: {
     sortedProducts() {
@@ -1371,7 +1276,9 @@ export default {
           const productId = item.id || code || Math.random().toString(36).slice(2, 9)
           this.imageLoaded[productId] = false
 
-          const imageUrl = item.avatar || item.custom_field143 || (code ? `http://toppstiles.com.vn/products-test/hinh-gach/${code}.jpg` : '')
+          const productImageUrl = code ? `http://toppstiles.com.vn/products-test/hinh-gach/${code}.jpg` : ''
+          const fallbackAvatar = item.avatar || item.custom_field143 || ''
+          const imageUrl = productImageUrl || fallbackAvatar
           const priceBase = normalizePrice(item.price_base ?? item.priceBase ?? item.unit_price ?? item.price_sale)
           const priceSale = normalizePrice(item.price_sale ?? item.priceSale)
           const isSaleFlag = item.is_sale === true || item.is_sale === 1 || item.is_sale === '1' || item.is_sale === 'true'
@@ -1416,7 +1323,7 @@ export default {
 
       product.fallbackAttempted = true
 
-      // Thử lấy hình phối cảnh trước, sau đó tới hình thực tế
+      // Thử lần lượt: hình sản phẩm -> phối cảnh -> thực tế
       this.resolveFallbackImage(product)
         .then((fallbackSrc) => {
           if (fallbackSrc) {
@@ -1460,7 +1367,13 @@ export default {
 
       const collectionName = product.collectionName || ''
 
-      // Ưu tiên hình phối cảnh, sau đó hình thực tế
+      // Ưu tiên hình sản phẩm, sau đó phối cảnh rồi thực tế
+      const productImages = await productService.getProductImages(code, 'product', collectionName)
+      if (productImages && productImages.length) {
+        product.cachedFallbackImage = productImages[0]
+        return product.cachedFallbackImage
+      }
+
       const perspectiveImages = await productService.getProductImages(code, 'perspective', collectionName)
       if (perspectiveImages && perspectiveImages.length) {
         product.cachedFallbackImage = perspectiveImages[0]

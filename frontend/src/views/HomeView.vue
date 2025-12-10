@@ -1,138 +1,185 @@
-<template>
+<template><div class="top-bar" @click.stop>
+      <div class="container top-bar-inner">
+        <div class="top-right-login">
+          <router-link v-if="!userData" to="/login" class="btn-login-top">
+            <i class="fi fi-br-user"></i>
+            <span>Đăng nhập</span>
+          </router-link>
+          <div v-else class="user-pill" @click="toggleUserMenu">
+            <i class="fi fi-br-user"></i>
+            <span>{{ userData.name || userData.username }}</span>
+            <i class="fi fi-br-angle-down small-icon"></i>
+          </div>
+          <div v-if="showUserMenu" class="home-user-menu">
+            <div class="home-user-menu-item">
+              <i class="fi fi-br-user"></i>
+              <span>{{ userData.name || userData.username }}</span>
+            </div>
+            <router-link class="home-user-menu-item" to="/quote-list" @click="closeUserMenu">
+              <i class="fi fi-br-file-invoice"></i>
+              <span>Báo giá của tôi</span>
+            </router-link>
+            <router-link class="home-user-menu-item" to="/profile" @click="closeUserMenu">
+              <i class="fi fi-br-settings"></i>
+              <span>Tài khoản</span>
+            </router-link>
+            <button class="home-user-menu-item logout-btn" @click="handleLogout">
+              <i class="fi fi-br-sign-out"></i>
+              <span>Đăng xuất</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   <div class="home">
-    <!-- Hero section với logo và search -->
-    <div class="hero-section d-flex align-items-center mt-5">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-md-9 text-center">
-            <!-- Logo -->
-            <div class="logo-wrapper mb-3">
-              <img src="@/assets/images/logo-vietceramics.png" alt="Logo" class="logo mx-auto d-block" />
+     
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-content">
+          <div class="hero-head">
+            <div class="logo-block">
+              <div class="logo-wrapper">
+                <img src="@/assets/images/logo-vietceramics.png" alt="Logo Vietceramics" class="logo" />
+              </div>
+                <div class="logo-text">
+                <span class="eyebrow-pill logo-sub">item</span>
+                 
+                </div>
+            </div>
+          </div>
+
+          <h1 class="hero-title">
+            Khơi cảm hứng cho mọi không gian
+          </h1>
+          <p class="hero-lead">
+            Tìm nhanh mã sản phẩm, bộ sưu tập và lọc theo nhu cầu thiết kế.
+          </p>
+
+          <div class="search-box position-relative">
+            <div class="search-input-wrapper">
+              <i class="fi fi-br-search search-icon"></i>
+              <input type="text" class="form-control search-input" placeholder="Nhập mã sản phẩm..."
+                v-model="searchQuery" @input="handleSearch" />
             </div>
 
-            <!-- User/Login -->
-            <div class="top-right-login" @click.stop>
-              <router-link v-if="!userData" to="/login" class="btn-login-top">
-                <i class="fi fi-br-user"></i>
-                <span>Đăng nhập</span>
-              </router-link>
-              <div v-else class="user-pill" @click="toggleUserMenu">
-                <i class="fi fi-br-user"></i>
-                <span>{{ userData.name || userData.username }}</span>
-                <i class="fi fi-br-angle-down small-icon"></i>
+            <div class="search-results" v-if="showResults || isSearching">
+              <div v-if="isSearching" class="search-loading">
+                <div class="spinner"></div>
+                <span>Đang tìm kiếm...</span>
               </div>
-              <div v-if="showUserMenu" class="home-user-menu">
-                <div class="home-user-menu-item">
-                  <i class="fi fi-br-user"></i>
-                  <span>{{ userData.name || userData.username }}</span>
-                </div>
-                <router-link class="home-user-menu-item" to="/quote-list" @click="closeUserMenu">
-                  <i class="fi fi-br-file-invoice"></i>
-                  <span>Báo giá của tôi</span>
-                </router-link>
-                <router-link class="home-user-menu-item" to="/profile" @click="closeUserMenu">
-                  <i class="fi fi-br-settings"></i>
-                  <span>Tài khoản</span>
-                </router-link>
-                <button class="home-user-menu-item logout-btn" @click="handleLogout">
-                  <i class="fi fi-br-sign-out"></i>
-                  <span>Đăng xuất</span>
-                </button>
+              <div v-else-if="searchResults.length === 0" class="no-results">
+                Không tìm thấy kết quả
               </div>
-            </div>
-
-            <!-- Search Box -->
-            <div class="search-box position-relative">
-              <div class="search-input-wrapper">
-                <i class="fi fi-br-search search-icon"></i>
-                <input type="text" class="form-control search-input" placeholder="Nhập mã sản phẩm..."
-                  v-model="searchQuery" @input="handleSearch" />
-              </div>
-
-              <!-- Search Results -->
-              <div class="search-results" v-if="showResults || isSearching">
-                <div v-if="isSearching" class="search-loading">
-                  <div class="spinner"></div>
-                  <span>Đang tìm kiếm...</span>
-                </div>
-                <div v-else-if="searchResults.length === 0" class="no-results">
-                  Không tìm thấy kết quả
-                </div>
-                <div v-else class="search-items">
-                  <div v-for="item in searchResults" :key="item.id" class="search-item">
-                    <div class="d-flex align-items-center">
-                      <div class="search-thumb-wrapper">
-                        <img :src="item.thumbnail" class="search-thumb" :alt="item.name"
-                          @error="$event.target.src = 'https://placehold.co/100x100?text=vietceramics'" />
-                      </div>
-                      <div class="search-item-content">
-                        <router-link :to="'/san-pham/' + item.product_code" class="product-name">
-                          {{ item.product_name }}   
+              <div v-else class="search-items">
+                <div
+                  v-for="item in searchResults"
+                  :key="item.id"
+                  class="search-item"
+                  role="button"
+                  tabindex="0"
+                  @click="goToProduct(item.product_code)"
+                  @keydown.enter.prevent="goToProduct(item.product_code)"
+                >
+                  <div class="d-flex align-items-center">
+                    <div class="search-thumb-wrapper">
+                      <img :src="item.thumbnail" class="search-thumb" :alt="item.name"
+                        @error="$event.target.src = 'https://placehold.co/100x100?text=vietceramics'" />
+                    </div>
+                    <div class="search-item-content">
+                      <span class="product-name">
+                        {{ item.product_name }}
+                      </span>
+                      <div class="collection-name">
+                        <router-link
+                          :to="buildCollectionLink(item)"
+                          class="collection-name"
+                          @click.stop
+                        >
+                          Bộ sưu tập: {{ item.collectionName }}
                         </router-link>
-                        <div class="collection-name">
-                          <router-link
-                            :to="buildCollectionLink(item)"
-                            class="collection-name"
-                          >
-                            Bộ sưu tập: {{ item.collectionName }}
-                          </router-link>
-                        </div>
                       </div>
-                      <div class="search-item-icon">
-                        <i class="fi fi-br-angle-right"></i>
-                      </div>
+                    </div>
+                    <div class="search-item-icon">
+                      <i class="fi fi-br-angle-right"></i>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Phân loại theo không gian -->
-    <div class="spaces-section py-5 align-items-center">
-      <div class="container">
-        <div class="spaces-grid">
-          <div class="space-item" v-for="space in spaces" :key="space.id">
-            <router-link
-              class="space-card text-center"
-              :to="{ name: 'catalog', query: { productType: space.productType } }"
-            >
-              <div class="space-icon mb-2">
+          <div class="hero-showcase">
+            <div class="spotlight-card" v-for="space in spaces" :key="space.id" :style="{ background: space.gradient }">
+              <div class="spotlight-icon">
                 <img :src="space.image" :alt="space.name" class="space-image">
               </div>
-              <h3 class="space-title">{{ space.name }}</h3>
-            </router-link>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Kích thước phổ biến -->
-    <div class="sizes-section pb-5 pt-2">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-lg-8">
-            <div class="size-tags d-flex flex-wrap justify-content-center gap-2">
-              <router-link v-for="size in sizes" :key="size.id" :to="'/danh-muc?size=' + size.id"
-                class="btn btn-outline-dark rounded-pill">
-                {{ size.name }}
+              <div class="spotlight-body">
+                <p class="spotlight-eyebrow">Danh mục</p>
+                <h3>{{ space.name }}</h3>
+                <p class="spotlight-text">{{ space.description }}</p>
+              </div>
+              <router-link class="spotlight-link" :to="{ name: 'catalog', query: { productType: space.productType } }">
+                Khám phá <i class="fi fi-br-arrow-right"></i>
               </router-link>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
+
+    <section class="section sizes-section">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Lọc theo kích thước</p>
+            <h2>Kích thước phổ biến</h2>
+            <p class="muted">Danh sách lấy trực tiếp từ bộ lọc danh mục.</p>
+          </div>
+          <router-link class="section-link" :to="{ name: 'catalog' }">
+            Mở bộ lọc <i class="fi fi-br-arrow-right"></i>
+          </router-link>
+        </div>
+        <div class="chip-rail">
+          <router-link v-for="size in sizeChips" :key="size.id" :to="{ name: 'catalog', query: { size: size.id } }"
+            class="chip">
+            {{ size.name }}
+          </router-link>
+        </div>
+      </div>
+    </section>
+
+    <section class="section sanitary-section">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Thiết bị vệ sinh</p>
+            <h2>Danh mục nổi bật</h2>
+            <p class="muted">Chọn nhanh các nhóm sản phẩm được quan tâm nhiều.</p>
+          </div>
+          <router-link class="section-link" :to="{ name: 'catalog', query: { productType: 'thiết bị vệ sinh' } }">
+            Xem tất cả TBVS <i class="fi fi-br-arrow-right"></i>
+          </router-link>
+        </div>
+        <div class="pill-grid">
+          <router-link v-for="category in sanitaryHighlights" :key="category.id" class="pill-card"
+            :to="{ name: 'catalog', query: { productType: 'thiết bị vệ sinh', category: category.id } }">
+            <span class="pill-dot"></span>
+            <span class="pill-text">{{ category.name }}</span>
+            <i class="fi fi-br-arrow-right"></i>
+          </router-link>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
 import { updateSeoMeta } from '@/utils/seo'
+import { getFeaturedCategories, getSizeOptions } from '@/data/catalogFilters'
+
 const apiBaseUrl = 'https://api.vietceramics.com/api'
-const cdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'http://toppstiles.com.vn/products-test/').trim()
+
 export default {
   name: 'HomeView',
   data() {
@@ -148,49 +195,37 @@ export default {
           id: 'pn',
           name: 'Gạch ốp lát',
           productType: 'gạch',
-          image: 'https://cdn-icons-gif.flaticon.com/10966/10966480.gif'
+          image: 'https://cdn-icons-gif.flaticon.com/10966/10966480.gif',
+          description: 'BST gạch ốp lát đa bề mặt, phù hợp mọi không gian.',
+          gradient: 'linear-gradient(135deg, #f5f7ff 0%, #dbe3ff 100%)'
         },
         {
           id: 'tbvs',
           name: 'Thiết bị vệ sinh',
           productType: 'thiết bị vệ sinh',
-          image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif'
+          image: 'https://cdn-icons-gif.flaticon.com/17091/17091858.gif',
+          description: 'Thiết bị phòng tắm cao cấp với thiết kế tinh gọn.',
+          gradient: 'linear-gradient(135deg, #fff5f2 0%, #ffe1d8 100%)'
         },
         {
           id: 'kh',
           name: 'Sàn gỗ',
           productType: 'sàn gỗ',
-          image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png'
+          image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
+          description: 'Sàn gỗ ấm áp, kết cấu chân thực cho không gian sống.',
+          gradient: 'linear-gradient(135deg, #f7f4ef 0%, #eadfce 100%)'
         }
       ],
-      sizes: [
-        { id: '1000x1000', name: '1000 x 1000 mm' },
-        { id: '1200x1200', name: '1200 x 1200 mm' },
-        { id: '1200x2400', name: '1200 x 2400 mm' },
-        { id: '150x600', name: '150 x 600 mm' },
-        { id: '105x900', name: '105 x 900 mm' },
-        { id: '1500x3000', name: '1500 x 3000 mm' },
-        { id: '200x1000', name: '200 x 1000 mm' },
-        { id: '200x1200', name: '200 x 1200 mm' },
-        { id: '200x750', name: '200 x 750 mm' },
-        { id: '230x1200', name: '230 x 1200 mm' },
-        { id: '300x300', name: '300 x 300 mm' },
-        { id: '300x600', name: '300 x 600 mm' },
-        { id: '400x800', name: '400 x 800 mm' },
-        { id: '450x900', name: '450 x 900 mm' },
-        { id: '600x1200', name: '600 x 1200 mm' },
-        { id: '600x600', name: '600 x 600 mm' },
-        { id: '750x750', name: '750 x 750 mm' },
-        { id: '800x1600', name: '800 x 1600 mm' },
-        { id: '800x800', name: '800 x 800 mm' },
-        { id: '900x1800', name: '900 x 1800 mm' },
-        { id: '900x900', name: '900 x 900 mm' },
-        { id: '315x1000', name: '315 x 1000 mm' },
-        { id: '200x200', name: '200 x 200 mm' },
-        { id: '300x900', name: '300 x 900 mm' },
-        { id: '330x1000', name: '330 x 1000 mm' },
-        { id: '750x1500', name: '750 x 1500 mm' }
-      ]
+      sizes: getSizeOptions(), // tái sử dụng danh sách kích thước từ bộ lọc danh mục
+      sanitaryCategories: getFeaturedCategories('thiết bị vệ sinh')
+    }
+  },
+  computed: {
+    sizeChips() {
+      return this.sizes
+    },
+    sanitaryHighlights() {
+      return this.sanitaryCategories.slice(0, 14)
     }
   },
   methods: {
@@ -282,6 +317,10 @@ export default {
 
       return { name: 'catalog', query };
     },
+    goToProduct(productCode) {
+      if (!productCode) return;
+      this.$router.push({ name: 'product-detail', params: { id: productCode } });
+    },
     handleLogout() {
       localStorage.removeItem('user')
       this.userData = null
@@ -314,30 +353,129 @@ export default {
 </script>
 
 <style scoped>
+.home { 
+}
+
+.hero {
+  padding: 32px 0 20px;
+  background: transparent;
+  margin-bottom: 10px;
+}
+
+.hero-grid {
+  display: block;
+}
+
+.hero-content {
+  position: relative;
+  margin: 0 auto;
+}
+
+.hero-content>*:not(:last-child) {
+  margin-bottom: 18px;
+}
+
+.hero-title {
+  margin: 12px 0 8px;
+}
+
+.hero-lead {
+  margin: 0 0 10px;
+}
+
+.hero-head {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo-wrapper {
+  width: 72px;
+  height: 72px;
+  background: #fff;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.logo {
+  height: 54px;
+  width: auto;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+} 
+.logo-text .logo-sub  {
+    margin-top: -31px;
+    font-size: 12px;
+    color: #ffffff;
+    position: absolute;
+    right: -166px;
+}
+.eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #0c1c2e;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.logo-sub {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+}
+
 .top-right-login {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+  margin-left: auto;
+  position: relative;
   z-index: 5;
 }
 
-.btn-login-top, .user-pill {
+.btn-login-top,
+.user-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.08);
-  color: #000;
+  background: rgba(12, 28, 46, 0.07);
+  color: #0c1c2e;
   text-decoration: none;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
 }
 
-.btn-login-top:hover, .user-pill:hover {
+.btn-login-top:hover,
+.user-pill:hover {
   transform: translateY(-2px);
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(12, 28, 46, 0.12);
+}
+
+.top-bar {
+  padding: 10px 0;
+}
+
+.top-bar-inner {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .home-user-menu {
@@ -345,12 +483,12 @@ export default {
   top: 44px;
   right: 0;
   background: #fff;
-  border: 1px solid #eee;
+  border: 1px solid #e6e9ef;
   border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
   min-width: 220px;
   overflow: hidden;
-  animation: fadeIn 0.15s ease;
+  animation: fadeIn 0.2s ease;
 }
 
 .home-user-menu-item {
@@ -358,7 +496,7 @@ export default {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  color: #222;
+  color: #1f2937;
   text-decoration: none;
   background: #fff;
   border: none;
@@ -368,7 +506,7 @@ export default {
 }
 
 .home-user-menu-item:hover {
-  background: #f5f5f5;
+  background: #f5f7fb;
 }
 
 .home-user-menu .logout-btn {
@@ -379,23 +517,25 @@ export default {
   font-size: 14px;
 }
 
-.hero-section {
-  background-color: white;
-  display: flex;
-  align-items: center;
-  padding-top: 2rem;
+.hero-title {
+  margin: 20px 0 8px;
+  font-size: 36px;
+  line-height: 1.2;
+  color: #0c1c2e;
+  font-weight: 700;
 }
 
-.logo {
-  height: 70px;
-  max-height: 70px;
-  width: auto;
-  margin-bottom: 1.5rem;
+.hero-lead {
+  margin: 0 0 16px;
+  color: #4b5563;
+  font-size: 16px;
 }
-
+.section {
+  max-width: 1200px;
+}
 .search-box {
-  max-width: 895px;
-  margin: 0 auto;
+  width: 100%;
+  margin-top: 10px;
 }
 
 .search-input-wrapper {
@@ -404,33 +544,33 @@ export default {
 }
 
 .search-input {
-  height: 55px;
-  padding-left: 50px;
-  padding-right: 20px;
-  border-radius: 23px;
+  height: 56px;
+  padding-left: 52px;
+  padding-right: 16px;
+  border-radius: 14px;
   font-size: 16px;
-  background: #000000;
-  color: #ffffff;
-}
-
-.search-input:hover {
-  background: #000000;
-  color: #ffffff;
+  background: #0c1c2e;
+  color: #fff;
+  border: none;
+  box-shadow: 0 10px 30px rgba(12, 28, 46, 0.25);
 }
 
 .search-input:focus {
-  background: #000000;
-  color: #ffffff;
+  outline: none;
+  box-shadow: 0 12px 36px rgba(12, 28, 46, 0.3);
 }
 
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
 
 .search-icon {
   position: absolute;
-  left: 20px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  color: #ffffff;
-  font-size: 16px;
+  color: #fff;
+  font-size: 18px;
 }
 
 .search-results {
@@ -438,13 +578,13 @@ export default {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(32, 33, 36, 0.2);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
   z-index: 1000;
-  max-height: 400px;
+  max-height: 420px;
   overflow-y: auto;
-  margin-top: 0.5rem;
+  margin-top: 0.65rem;
   scrollbar-width: thin;
   scrollbar-color: #909090 #f1f1f1;
 }
@@ -463,23 +603,11 @@ export default {
   border-radius: 3px;
 }
 
-.search-results::-webkit-scrollbar-thumb:hover {
-  background: #606060;
-}
-
 .search-item {
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   border-bottom: 1px solid #f1f3f4;
   transition: background-color 0.2s;
-}
-
-.search-item-icon {
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  margin-left: auto;
+  cursor: pointer;
 }
 
 .search-item:last-child {
@@ -494,9 +622,10 @@ export default {
   width: 60px;
   height: 60px;
   margin-right: 1rem;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
   flex-shrink: 0;
+  background: #f3f4f6;
 }
 
 .search-thumb {
@@ -508,37 +637,28 @@ export default {
 .search-item-content {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
   flex-wrap: nowrap;
-  align-content: flex-start;
   align-items: flex-start;
 }
 
 .product-name {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #202124;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #0c1c2e;
   text-decoration: none;
   line-height: 1.3;
 }
 
 .product-name:hover {
-  color: #000;
+  color: #b00020;
   text-decoration: underline;
 }
 
 .collection-name {
-  margin-top: -4px;
-  font-size: 0.85rem;
+  font-size: 0.86rem;
   color: #5f6368;
   text-decoration: none;
-}
-
-
-
-.collection-name {
-  font-size: 0.85rem;
-  color: #5f6368;
 }
 
 .collection-name:hover {
@@ -546,200 +666,9 @@ export default {
   text-decoration: underline;
 }
 
-/* Space cards styling */
-.spaces-section {
-     padding: 2rem 0;
-    padding-top: 21px !important;
-    margin: 0 auto;
-    max-width: 1200px;
-}
-
-.spaces-grid {
-    display: flex;
-    /* grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); */
-    gap: 1.5rem;
-    padding: 0 1rem;
-    /* width: 50%; */
-    justify-content: center;
-    align-items: flex-end;
-    text-align: center;
-    flex-direction: row;
-    flex-wrap: nowrap;
-
-}
-
-.space-item {
-  display: flex;
-  justify-content: center;
-}
-
-.space-card {
-  background: white;
-  padding: 0.65rem 0.4rem;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  position: relative;
-  transition: all 0.2s ease;
-  width: 110px;
-  text-decoration: none;
-  display: block;
-}
-
-.space-card:hover {
-  transform: translateY(-3px);
-}
-
-.space-image {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.space-icon {
-  color: #ffffff;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  margin-bottom: 0.5rem !important;
-}
-
-.space-icon i {
-  font-size: 24px;
-}
-
-.space-title {
-  font-size: 0.75rem;
-  margin: 0;
-  color: #202124;
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-/* Size tags styling */
-.size-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 10px;
-}
-
-.size-tags .btn {
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  border: 1px solid #000;
-  color: #000;
-  background: transparent;
-  transition: all 0.2s ease;
-  min-width: 100px;
-  align-items: center;
-}
-
-.size-tags .btn:hover {
-  background-color: #000;
-  color: #fff;
-  transform: translateY(-2px);
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: #000;
-  margin-bottom: 1.5rem;
-  position: relative;
-  display: inline-block;
-}
-
-.section-title:after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 2px;
-  background-color: #000;
-}
-
-@media (max-width: 768px) {
-  .hero-section {
-    padding-top: 1rem;
-  }
-
-  .logo {
-    max-height: 60px;
-    margin-bottom: 1rem;
-  }
-
-  .spaces-section {
-    padding: 1.5rem 0;
-  }
-
-  .spaces-grid {
-    padding: 0 0.75rem;
-  }
-
-  .space-card {
-    width: 95px;
-    padding: 0.5rem 0.35rem;
-  }
-
-  .space-icon {
-    width: 32px;
-    height: 32px;
-    margin-bottom: 0.4rem !important;
-  }
-
-  .space-image {
-    width: 32px;
-    height: 32px;
-  }
-
-  .space-title {
-    font-size: 0.7rem;
-  }
-
-  .size-tags .btn {
-    padding: 5px 10px;
-    font-size: 0.75rem;
-    min-width: 110px;
-  }
-}
-
-@media (max-width: 576px) {
-  .spaces-section {
-    padding: 1rem 0;
-  }
-
-  .spaces-grid {
-    padding: 0 0.5rem;
-  }
-
-  .space-card {
-    width: 85px;
-    padding: 0.4rem 0.3rem;
-  }
-
-  .space-icon {
-    width: 28px;
-    height: 28px;
-  }
-
-  .space-image {
-    width: 28px;
-    height: 28px;
-  }
-
-  .space-title {
-    font-size: 0.65rem;
-  }
+.search-item-icon {
+  margin-left: auto;
+  color: #9ca3af;
 }
 
 .search-loading {
@@ -774,6 +703,269 @@ export default {
 
   100% {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quick-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.quick-links-label {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.quick-pill {
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: #0c1c2e;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+.quick-pill:hover {
+  transform: translateY(-2px);
+  border-color: #0c1c2e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.hero-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.spotlight-card {
+  position: relative;
+  border-radius: 18px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid #e6e9ef;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+}
+
+.spotlight-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+  display: grid;
+  place-items: center;
+  border: 1px solid #e6e9ef;
+}
+
+.space-image {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.spotlight-body h3 {
+  margin: 4px 0;
+  font-size: 18px;
+  color: #0c1c2e;
+}
+
+.spotlight-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  color: #374151;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.spotlight-text {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.spotlight-link {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0c1c2e;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.spotlight-link:hover {
+  color: #b00020;
+}
+
+.section {
+  padding: 36px 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.section-header h2 {
+  margin: 2px 0 6px;
+  font-size: 24px;
+  color: #0c1c2e;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.muted {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: #0c1c2e;
+  font-weight: 700;
+}
+
+.section-link:hover {
+  color: #b00020;
+}
+
+.chip-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  color: #0c1c2e;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+}
+
+.chip:hover {
+  transform: translateY(-2px);
+  border-color: #0c1c2e;
+}
+
+.sanitary-section {
+  padding-bottom: 48px;
+}
+
+.pill-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.pill-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  border-radius: 12px;
+  text-decoration: none;
+  color: #0c1c2e;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+}
+
+.pill-card:hover {
+  transform: translateY(-2px);
+  border-color: #0c1c2e;
+}
+
+.pill-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0c1c2e;
+  flex-shrink: 0;
+}
+
+.pill-text {
+  flex: 1;
+}
+
+@media (max-width: 992px) {
+  .hero-content {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 32px 0 24px;
+  }
+
+  .logo-wrapper {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+  }
+
+  .hero-showcase {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-showcase {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

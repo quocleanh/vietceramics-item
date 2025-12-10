@@ -28,8 +28,7 @@ const route = useRoute()
 }
 
 main {
-  flex: 1;
-  padding-top: 60px;
+  flex: 1; 
   
 
 }
@@ -45,8 +44,7 @@ main {
 }
 
 .search-box {
-  width: 100%;
-  max-width: 400px;
+  width: 100%; 
 }
 
 .search-box .form-control {
