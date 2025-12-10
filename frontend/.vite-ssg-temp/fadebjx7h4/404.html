@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Vietceramics</title>
+    <script type="text/javascript">
+      // Preserve the requested path so the SPA router can restore it after redirecting to index.html
+      (function () {
+        try {
+          const redirectUrl = window.location.href;
+          sessionStorage.setItem('redirect', redirectUrl);
+        } catch (err) {
+          // Fallback: still navigate to the app shell even if sessionStorage fails
+        }
+        window.location.replace('/');
+      })();
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
