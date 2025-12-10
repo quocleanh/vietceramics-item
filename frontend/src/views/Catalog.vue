@@ -234,21 +234,26 @@
                   <h5 class="card-title">{{ product.name }}</h5>
                   <p class="card-text">Mã: {{ product.itemCode }}</p>
                   <div class="price-block">
-                    <template v-if="product.priceSale !== null || product.priceBase !== null">
-                      <span 
-                        v-if="product.isSale && product.priceSale !== null" 
-                        class="price-sale"
-                      >
-                        {{ formatPrice(product.priceSale) }}
-                      </span>
-                      <span 
-                        v-if="product.priceBase !== null" 
-                        :class="['price-base', { 'text-decoration-line-through': product.isSale && product.priceSale !== null }]"
-                      >
-                        {{ formatPrice(product.priceBase) }}
-                      </span>
+                    <template v-if="isLoggedIn">
+                      <template v-if="product.priceSale !== null || product.priceBase !== null">
+                        <span 
+                          v-if="product.isSale && product.priceSale !== null" 
+                          class="price-sale"
+                        >
+                          {{ formatPrice(product.priceSale) }}
+                        </span>
+                        <span 
+                          v-if="product.priceBase !== null" 
+                          :class="['price-base', { 'text-decoration-line-through': product.isSale && product.priceSale !== null }]"
+                        >
+                          {{ formatPrice(product.priceBase) }}
+                        </span>
+                      </template>
+                      <span v-else class="price-contact">Liên hệ</span>
                     </template>
-                    <span v-else class="price-contact">Liên hệ</span>
+                    <template v-else>
+                      <span class="price-contact login-required">Đăng nhập để xem giá</span>
+                    </template>
                   </div>
                   <router-link
                     class="btn btn-primary"
@@ -984,6 +989,7 @@ export default {
       products: [],
       loading: false,
       imageLoaded: {},
+      isLoggedIn: false,
       filters: {
         categories: [
         {
@@ -1013,10 +1019,10 @@ export default {
           sizes: getSizeOptions()
         },
         { 
-          id: 'sàn gỗ', 
-          name: 'Sàn gỗ',
+          id: 'ván sàn', 
+          name: 'ván sàn',
           image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
-          categories: getFeaturedCategories('sàn gỗ'),
+          categories: getFeaturedCategories('ván sàn'),
           collections: [
             { id: 'signature wood', name: 'Signature Wood' },
             { id: 'coastal wood', name: 'Coastal Wood' },
@@ -1143,6 +1149,14 @@ export default {
     }
   },
   methods: {
+    updateLoginStatus() {
+      try {
+        const user = localStorage.getItem('user')
+        this.isLoggedIn = Boolean(user)
+      } catch (err) {
+        this.isLoggedIn = false
+      }
+    },
     applyRouteState(query = {}) {
       this.updatingFromRoute = true
       const page = parseInt(query.page, 10)
@@ -1544,6 +1558,17 @@ export default {
       })
     }
   },
+  mounted() {
+    this.updateLoginStatus()
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', this.updateLoginStatus)
+    }
+  },
+  beforeUnmount() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('storage', this.updateLoginStatus)
+    }
+  },
   watch: {
     '$route.query': {
       handler(newQuery) {
@@ -1796,6 +1821,10 @@ export default {
 .price-contact {
   color: #971b1e;
   font-weight: 700;
+}
+
+.login-required {
+  color: #c92a2a;
 }
 
 .btn-primary {

@@ -96,7 +96,7 @@ const featuredCategoriesMap = {
   'thiet bi ve sinh': nonTileFeaturedNames,
   'thiết bị vệ sinh': nonTileFeaturedNames,
   'san go': nonTileFeaturedNames,
-  'sàn gỗ': nonTileFeaturedNames
+  'ván sàn': nonTileFeaturedNames
 }
 
 const normalizeKey = (value = '') => value
