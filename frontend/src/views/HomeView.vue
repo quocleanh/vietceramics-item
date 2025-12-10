@@ -209,10 +209,10 @@ export default {
         },
         {
           id: 'kh',
-          name: 'Sàn gỗ',
-          productType: 'sàn gỗ',
+          name: 'Ván sàn',
+          productType: 'Ván sàn',
           image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
-          description: 'Sàn gỗ ấm áp, kết cấu chân thực cho không gian sống.',
+          description: 'Ván sàn ấm áp, kết cấu chân thực cho không gian sống.',
           gradient: 'linear-gradient(135deg, #f7f4ef 0%, #eadfce 100%)'
         }
       ],
@@ -331,7 +331,7 @@ export default {
       const spaceLabels = this.spaces.map(space => space.name).join(', ')
       updateSeoMeta({
         title: 'Vietceramics | Không gian vật liệu cao cấp',
-        description: `Khám phá ${spaceLabels} cùng hàng nghìn thiết kế gạch, thiết bị vệ sinh và sàn gỗ chính hãng từ Vietceramics.`,
+        description: `Khám phá ${spaceLabels} cùng hàng nghìn thiết kế gạch, thiết bị vệ sinh và Ván sàn chính hãng từ Vietceramics.`,
         keywords: `Vietceramics,${spaceLabels}`,
         image: this.spaces[0]?.image
       })

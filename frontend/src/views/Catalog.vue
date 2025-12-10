@@ -1013,10 +1013,10 @@ export default {
           sizes: getSizeOptions()
         },
         { 
-          id: 'sàn gỗ', 
-          name: 'Sàn gỗ',
+          id: 'Ván sàn', 
+          name: 'Ván sàn',
           image: 'https://cdn-icons-png.flaticon.com/128/5848/5848426.png',
-          categories: getFeaturedCategories('sàn gỗ'),
+          categories: getFeaturedCategories('Ván sàn'),
           collections: [
             { id: 'signature wood', name: 'Signature Wood' },
             { id: 'coastal wood', name: 'Coastal Wood' },
