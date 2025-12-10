@@ -263,6 +263,7 @@ const checkLoginStatus = () => {
 
 const handleLogout = () => {
     localStorage.removeItem('user')
+    window.dispatchEvent(new Event('user-logged-out'))
     userData.value = null
     isMenuOpen.value = false
     

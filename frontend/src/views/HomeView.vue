@@ -323,6 +323,7 @@ export default {
     },
     handleLogout() {
       localStorage.removeItem('user')
+      window.dispatchEvent(new Event('user-logged-out'))
       this.userData = null
       this.showUserMenu = false
       this.$router.push('/login')

@@ -233,7 +233,7 @@
                 <div class="card-body">
                   <h5 class="card-title">{{ product.name }}</h5>
                   <p class="card-text">Mã: {{ product.itemCode }}</p>
-                  <div class="price-block">
+                  <div v-if="isLoggedIn" class="price-block">
                     <template v-if="product.priceSale !== null || product.priceBase !== null">
                       <span 
                         v-if="product.isSale && product.priceSale !== null" 
@@ -249,6 +249,10 @@
                       </span>
                     </template>
                     <span v-else class="price-contact">Liên hệ</span>
+                  </div>
+                  <div v-else class="price-block price-login" @click="goToLogin">
+                    <i class="fi fi-br-lock"></i>
+                    <span>Đăng nhập để xem giá</span>
                   </div>
                   <router-link
                     class="btn btn-primary"
@@ -984,6 +988,7 @@ export default {
       products: [],
       loading: false,
       imageLoaded: {},
+      userData: null,
       filters: {
         categories: [
         {
@@ -1140,9 +1145,65 @@ export default {
           (this.priceRange[0] != null) ||
           (this.priceRange[1] != null)
         )
+    },
+    isLoggedIn() {
+      return !!this.userData
     }
   },
   methods: {
+    checkLoginStatus() {
+      const user = localStorage.getItem('user')
+      if (!user) {
+        this.userData = null
+        return
+      }
+      try {
+        const parsed = JSON.parse(user)
+        const expired = parsed.expiresAt && new Date(parsed.expiresAt) <= new Date()
+        if (expired) {
+          localStorage.removeItem('user')
+          this.userData = null
+          return
+        }
+        this.userData = parsed
+      } catch (error) {
+        this.userData = null
+      }
+    },
+    handleUserLogin(event) {
+      if (event?.detail) {
+        this.userData = event.detail
+        return
+      }
+      this.checkLoginStatus()
+    },
+    handleUserLogout() {
+      this.userData = null
+    },
+    handleStorageChange(event) {
+      if (!event || event.key === 'user') {
+        this.checkLoginStatus()
+      }
+    },
+    goToLogin() {
+      try {
+        localStorage.setItem('previousPath', this.$route.fullPath)
+        localStorage.setItem('redirect_after_login', this.$route.fullPath)
+      } catch (err) {
+        // ignore storage errors
+      }
+      this.$router.push('/login')
+    },
+    resolveCategoryId(rawValue) {
+      if (!rawValue || !this.filters?.categories?.length) return null
+      const normalizedValue = normalizeText(rawValue)
+      const match = this.filters.categories.find(cat => {
+        const normalizedId = normalizeText(cat.id)
+        const normalizedName = normalizeText(cat.name)
+        return normalizedId === normalizedValue || normalizedName === normalizedValue
+      })
+      return match ? match.id : null
+    },
     applyRouteState(query = {}) {
       this.updatingFromRoute = true
       const page = parseInt(query.page, 10)
@@ -1153,19 +1214,24 @@ export default {
       this.sortOption = sort
 
       let resolvedCategoryParam = query.category || null
-      let routeProductType = normalizeProductTypeId(query.productType || null)
+      let routeProductType = query.productType ? query.productType.toString().trim() : null
       if (!routeProductType && resolvedCategoryParam) {
         const isTopLevelCategory = this.filters.categories.some(cat => cat.id === resolvedCategoryParam)
         if (isTopLevelCategory) {
-          routeProductType = normalizeProductTypeId(resolvedCategoryParam)
+          routeProductType = resolvedCategoryParam
           resolvedCategoryParam = null
         }
       }
-      routeProductType = routeProductType || this.selectedFilters.categories[0] || null
-      if (routeProductType) {
-        this.activeCategoryId = routeProductType
-        if (this.selectedFilters.categories[0] !== routeProductType) {
-          this.selectedFilters.categories = [routeProductType]
+      const fallbackProductType = this.selectedFilters.categories[0] || null
+      const matchedProductType = this.resolveCategoryId(routeProductType) ||
+        this.resolveCategoryId(fallbackProductType) ||
+        routeProductType ||
+        fallbackProductType ||
+        null
+      if (matchedProductType) {
+        this.activeCategoryId = matchedProductType
+        if (this.selectedFilters.categories[0] !== matchedProductType) {
+          this.selectedFilters.categories = [matchedProductType]
         }
       } else {
         this.activeCategoryId = null
@@ -1544,6 +1610,19 @@ export default {
       })
     }
   },
+  created() {
+    this.checkLoginStatus()
+  },
+  mounted() {
+    window.addEventListener('user-logged-in', this.handleUserLogin)
+    window.addEventListener('user-logged-out', this.handleUserLogout)
+    window.addEventListener('storage', this.handleStorageChange)
+  },
+  beforeUnmount() {
+    window.removeEventListener('user-logged-in', this.handleUserLogin)
+    window.removeEventListener('user-logged-out', this.handleUserLogout)
+    window.removeEventListener('storage', this.handleStorageChange)
+  },
   watch: {
     '$route.query': {
       handler(newQuery) {
@@ -1782,6 +1861,22 @@ export default {
   align-items: center;
   gap: 0.15rem;
   margin-bottom: 0.75rem;
+}
+
+.price-login {
+  flex-direction: row;
+  gap: 0.35rem;
+  color: #971b1e;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.price-login:hover {
+  color: #7a1618;
+}
+
+.price-login i {
+  font-size: 1rem;
 }
 
 .price-sale {
