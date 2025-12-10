@@ -1,41 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
- 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
- 
-    <title>Vietceramics Item</title>
-    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-bold-rounded/css/uicons-bold-rounded.css'>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NS378GYPDW"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-NS378GYPDW');
-    </script>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script>
-      (function () {
-        const redirect = sessionStorage.getItem('redirect');
-        if (redirect) {
-          sessionStorage.removeItem('redirect');
-          const url = new URL(redirect);
-          const target = url.pathname + url.search + url.hash;
-          const current = window.location.pathname + window.location.search + window.location.hash;
-          if (target && target !== current) {
-            window.history.replaceState(null, '', target);
-          }
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/favicon.ico">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <title>Vietceramics Item</title>
+  <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.6.0/uicons-bold-rounded/css/uicons-bold-rounded.css'>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NS378GYPDW"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    // QUAN TRỌNG: tắt auto page_view để SPA tự control
+    gtag('config', 'G-NS378GYPDW', {
+      send_page_view: false
+    });
+  </script>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script>
+    (function () {
+      const redirect = sessionStorage.getItem('redirect');
+      if (redirect) {
+        sessionStorage.removeItem('redirect');
+        const url = new URL(redirect);
+        const target = url.pathname + url.search + url.hash;
+        const current = window.location.pathname + window.location.search + window.location.hash;
+        if (target && target !== current) {
+          window.history.replaceState(null, '', target);
         }
-      })();
-    </script>
-    <script type="module" src="/src/main.js"></script>
-  
-  </body>
+      }
+    })();
+  </script>
+  <script type="module" src="/src/main.js"></script>
+
+</body>
+
 </html>
