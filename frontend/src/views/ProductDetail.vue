@@ -652,7 +652,7 @@ if (
 
   const line1 = productName;                     // TÊN SẢN PHẨM (IN HOA, 1 dòng riêng)
   const line2 = 'KHÔNG CÓ HÌNH ẢNH';             // Dòng thông báo
-  const line3 = 'VUI LÒNG LIÊN HỆ QC ';         // Dòng chú thích nhỏ
+  const line3 =  ';         // Dòng chú thích nhỏ
 
   const placeholderText = encodeURIComponent(
     `${line1}\n${line2}\n${line3}`
