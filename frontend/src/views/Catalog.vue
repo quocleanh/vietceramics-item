@@ -188,6 +188,23 @@
           </div>
         </div>
 
+        <div v-if="activeFilterChips.length" class="active-filters mb-3">
+          <span class="active-filters__label">Đang lọc:</span>
+          <button
+            v-for="chip in activeFilterChips"
+            :key="chip.type"
+            type="button"
+            class="active-filter-chip"
+            @click="clearFilter(chip.type)"
+          >
+            <span class="chip-name">{{ chip.label }}</span>
+            <i class="fi fi-br-cross"></i>
+          </button>
+          <button type="button" class="active-filter-chip clear-all" @click="clearAllFilters">
+            Xóa tất cả
+          </button>
+        </div>
+
         <!-- Skeleton loading -->
         <div v-if="loading" class="row">
           <div v-for="i in 12" :key="i" class="col-md-3 mb-3 col-sm-6 col-6">
@@ -1146,6 +1163,41 @@ export default {
           (this.priceRange[1] != null)
         )
     },
+    activeFilterChips() {
+      const chips = []
+      const categoryName = this.activeCategory?.categories?.find(cat => cat.id === this.selectedCategoryId)?.name
+      if (this.selectedCategoryId) {
+        chips.push({ type: 'category', label: categoryName || this.selectedCategoryId })
+      }
+
+      const collectionName = this.activeCategory?.collections?.find(col => col.id === this.selectedCollectionId)?.name
+      if (this.selectedCollectionId) {
+        chips.push({ type: 'collection', label: collectionName || this.selectedCollectionId })
+      }
+
+      const colorName = this.activeCategory?.colors?.find(color => color.id === this.selectedColorId)?.name
+      if (this.selectedColorId) {
+        chips.push({ type: 'color', label: colorName || this.selectedColorId })
+      }
+
+      const sizeName = this.activeCategory?.sizes?.find(size => size.id === this.selectedSizeId)?.name
+      if (this.selectedSizeId) {
+        chips.push({ type: 'size', label: sizeName || this.selectedSizeId })
+      }
+
+      if (this.priceRange[0] != null || this.priceRange[1] != null) {
+        const from = this.priceRange[0] != null ? this.formatPrice(this.priceRange[0]) : ''
+        const to = this.priceRange[1] != null ? this.formatPrice(this.priceRange[1]) : ''
+        const label = [from, to].filter(Boolean).join(' - ')
+        chips.push({ type: 'price', label: label || 'Khoảng giá' })
+      }
+
+      if (this.saleOnly) {
+        chips.push({ type: 'sale', label: 'Giảm giá' })
+      }
+
+      return chips
+    },
     isLoggedIn() {
       return !!this.userData
     }
@@ -1183,6 +1235,32 @@ export default {
     handleStorageChange(event) {
       if (!event || event.key === 'user') {
         this.checkLoginStatus()
+      }
+    },
+    clearFilter(type) {
+      switch (type) {
+        case 'category':
+          this.selectedCategoryId = null
+          break
+        case 'collection':
+          this.selectedCollectionId = null
+          break
+        case 'color':
+          this.selectedColorId = null
+          break
+        case 'size':
+          this.selectedSizeId = null
+          break
+        case 'price':
+          this.priceRange = [null, null]
+          this.priceInputs = { from: '', to: '' }
+          this.updateRouteQuery({ priceFrom: undefined, priceTo: undefined, page: 1 })
+          break
+        case 'sale':
+          this.saleOnly = false
+          break
+        default:
+          break
       }
     },
     goToLogin() {
@@ -1711,6 +1789,52 @@ export default {
   padding: 1.5rem;
   border-radius: 8px;
   height: 100%;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.active-filters__label {
+  font-weight: 600;
+  color: #444;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f3f5;
+  border: 1px solid #e9ecef;
+  color: #444;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.active-filter-chip i {
+  font-size: 0.8rem;
+}
+
+.active-filter-chip:hover {
+  background: #fff;
+  border-color: #971b1e;
+  color: #971b1e;
+}
+
+.active-filter-chip.clear-all {
+  background: #ffe3e3;
+  color: #971b1e;
+  border-color: #ffc9c9;
+}
+
+.active-filter-chip.clear-all:hover {
+  background: #ffc9c9;
 }
 
 .reset-filter-btn {
