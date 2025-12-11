@@ -2,6 +2,7 @@ import axios from 'axios';
 import fieldDefinitions from '@/assets/product_field_definitions.json';
 
 const apiBaseUrl = 'https://api.vietceramics.com/api';
+const detailApiBaseUrl = (import.meta.env.VITE_PRODUCT_DETAIL_API || apiBaseUrl).replace(/\/$/, '');
 const rawCdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'https://static.superstone.com.vn/products-test/').trim();
 const cdnBaseUrl = rawCdnBaseUrl.endsWith('/') ? rawCdnBaseUrl : `${rawCdnBaseUrl}/`;
 const maxImageVariants = 10;
@@ -131,28 +132,16 @@ export const productService = {
    * @returns {Promise} Promise chứa thông tin sản phẩm
    */
   async getProductDetail(productId) {
-    try {
-      const response = await axios.get(`${apiBaseUrl}/Products/Search`, {
-        params: {
-          keyword: productId,
-          pageIndex: 1,
-          pageSize: 1
-        }
-      });
-
-      const item = Array.isArray(response.data?.data) ? response.data.data[0] : null;
-      if (!item) {
-        throw new Error('Product not found');
-      }
-
-      const code = item.product_code || item.id || productId;
-      let fallbackPrice = normalizePrice(item.unit_price);
+    const mapProduct = async (item, sourceCode) => {
+      const code = item.product_code || item.id || sourceCode || productId;
+      let fallbackPrice = normalizePrice(
+        item.unit_price ?? item.price_base ?? item.price_base ?? item.price
+      );
       // Lấy giá từ API PricesByCode nếu có
       try {
         const priceRes = await axios.get(`${apiBaseUrl}/Products/PricesByCode`, {
           params: { itemNo: code }
         });
-        console.log('PricesByCode response:', priceRes.data);
         const priceData = priceRes.data;
         let extracted = null;
         if (Array.isArray(priceData?.data) && priceData.data.length) {
@@ -168,10 +157,10 @@ export const productService = {
           fallbackPrice = normalizedExtracted;
         }
       } catch (err) {
-        console.warn('PricesByCode fetch failed, fallback to search price', err);
+        console.warn('PricesByCode fetch failed, fallback to detail price', err);
       }
-      const apiBasePrice = normalizePrice(item.price_base ?? item.priceBase);
-      const apiSalePrice = normalizePrice(item.price_sale ?? item.priceSale);
+      const apiBasePrice = normalizePrice(item.price_base ?? item.priceBase ?? item.unit_price);
+      const apiSalePrice = normalizePrice(item.price_sale ?? item.priceSale ?? null);
       let priceBaseValue = apiBasePrice ?? fallbackPrice ?? null;
       const priceSaleValue = apiSalePrice;
       const apiSaleFlag = item.is_sale === true || item.is_sale === '1' || item.is_sale === 1 || item.is_sale === 'true';
@@ -194,7 +183,6 @@ export const productService = {
         console.warn('getLotPrices failed, continue without lot data', err);
       }
 
-      // Map API fields to UI model
       return {
         id: code,
         No_: code,
@@ -225,10 +213,43 @@ export const productService = {
         images: [],
         images_real: [],
         lotPrices,
-        /// giảm định data comboItems
-        comboItems: [ 
-        ]
+        comboItems: []
       };
+    };
+
+    const headers = priceApiToken ? { Authorization: priceApiToken } : {};
+
+    // Thử API chi tiết mới
+    try {
+      const detailRes = await axios.get(`${detailApiBaseUrl}/api/Products/ProductCode`, {
+        params: { productCode: productId },
+        headers
+      });
+      const detailData = detailRes.data?.data || detailRes.data;
+      if (detailRes.data?.success === false || !detailData) {
+        throw new Error('Detail API returned no data');
+      }
+      return await mapProduct(detailData, productId);
+    } catch (err) {
+      console.warn('Detail API (ProductCode) failed, fallback to search', err);
+    }
+
+    // Fallback API tìm kiếm cũ
+    try {
+      const response = await axios.get(`${apiBaseUrl}/Products/Search`, {
+        params: {
+          keyword: productId,
+          pageIndex: 1,
+          pageSize: 1
+        }
+      });
+
+      const item = Array.isArray(response.data?.data) ? response.data.data[0] : null;
+      if (!item) {
+        throw new Error('Product not found');
+      }
+
+      return await mapProduct(item, productId);
     } catch (error) {
       console.error('Error fetching product detail:', error);
       throw error;

@@ -12,7 +12,7 @@ const route = useRoute()
   <div class="container-fuild">
     <main>
       <div class="container"> 
-        <router-view></router-view>
+        <router-view :key="$route.fullPath"></router-view>
       </div>
     </main>
 

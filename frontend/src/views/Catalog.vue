@@ -1724,6 +1724,15 @@ export default {
         if (productType) {
           this.activeCategoryId = productType
           this.resetSelectionsForCategory(productType)
+          this.priceRange = [null, null]
+          this.priceInputs = { from: '', to: '' }
+          this.saleOnly = false
+          this.expandedSections = {
+            categories: [],
+            collections: [],
+            colors: [],
+            sizes: []
+          }
         } else {
           this.activeCategoryId = null
           this.resetSelectionsForCategory(null)
@@ -1731,6 +1740,13 @@ export default {
         this.currentPage = 1
         this.updateRouteQuery({
           productType,
+          category: undefined,
+          collection: undefined,
+          color: undefined,
+          size: undefined,
+          priceFrom: undefined,
+          priceTo: undefined,
+          saleOnly: undefined,
           page: 1
         })
       }

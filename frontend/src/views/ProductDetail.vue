@@ -720,36 +720,46 @@ if (
     },
 
     // Cuộn thumbnail đang active vào vùng nhìn thấy
-    scrollActiveThumbIntoView() {
+    scrollActiveThumbIntoView(scrollToStart = false) {
       this.$nextTick(() => {
-        const activeThumb = this.$refs.activeThumb;
-        const container = this.$refs.thumbnails;
-        if (activeThumb && activeThumb[0] && container) {
-          const thumbLeft = activeThumb[0].offsetLeft;
-          const thumbWidth = activeThumb[0].offsetWidth;
-          const containerWidth = container.clientWidth;
-          const scrollLeft = container.scrollLeft;
+        const doScroll = () => {
+          const activeThumb = this.$refs.activeThumb;
+          const container = this.$refs.thumbnails;
+          const activeEl = Array.isArray(activeThumb) ? activeThumb[0] : activeThumb;
+          if (activeEl && container) {
+            const thumbLeft = activeEl.offsetLeft;
+            const thumbWidth = activeEl.offsetWidth;
+            const containerWidth = container.clientWidth;
 
-          // If the active thumbnail is not visible or partially visible, scroll it into view
-          if (thumbLeft < scrollLeft || (thumbLeft + thumbWidth) > (scrollLeft + containerWidth)) {
-            // Center the thumbnail in the container
+            const targetLeft = scrollToStart
+              ? thumbLeft - 12 // pad a little to fully reveal the first thumb of the type
+              : thumbLeft - (containerWidth / 2) + (thumbWidth / 2);
+
+            const maxScroll = Math.max(container.scrollWidth - containerWidth, 0);
+            const nextLeft = Math.min(Math.max(targetLeft, 0), maxScroll);
+
             container.scrollTo({
-              left: thumbLeft - (containerWidth / 2) + (thumbWidth / 2),
+              left: nextLeft,
               behavior: 'smooth'
             });
+            this.updateThumbArrows();
           }
-          this.updateThumbArrows();
-        }
+        };
+
+        // chạy ngay sau render + thêm một lần delay để chắc chắn khi click nhanh
+        requestAnimationFrame(doScroll);
+        setTimeout(doScroll, 80);
       });
     },
 
     // Chuyển đổi giữa các loại hình ảnh
     jumpToImageType(type) {
       if (!this.availableImageTypes.includes(type)) return;
+      const targetIndex = this.getStartIndexForType(type);
       this.currentImageType = type;
-      this.currentImageIndex = this.getStartIndexForType(type);
+      this.currentImageIndex = targetIndex;
       this.$nextTick(() => {
-        this.scrollActiveThumbIntoView();
+        this.scrollActiveThumbIntoView(true);
       });
     },
 
@@ -1198,6 +1208,21 @@ if (
     window.addEventListener('keydown', this.handleKeyNavigation);
   },
   watch: {
+    '$route.params.id': {
+      immediate: false,
+      handler() {
+        this.loading = true;
+        this.product = null;
+        this.images = [];
+        this.images_perspective = [];
+        this.images_real = [];
+        this.currentImageIndex = 0;
+        this.currentImageType = 'product';
+        this.error = null;
+        this.fetchProduct();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
     currentImage() {
       this.imageLoading = true;
     }
@@ -1246,9 +1271,10 @@ if (
 }
 
 .main-img {
-  width: 100%;
+  width: auto;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  object-fit: contain;
   object-position: center;
   border-radius: 12px;
   background: #f8f9fa;

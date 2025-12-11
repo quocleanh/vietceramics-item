@@ -19,7 +19,9 @@
                                 class="form-control rounded-start-pill" 
                                 placeholder="Nhập mã sản phẩm..."
                                 v-model="searchQuery" 
-                                @input="handleSearch">
+                                @input="handleSearch"
+                                @keydown.enter.prevent="handleEnterSearch"
+                            >
                             <button class="btn btn-outline-light rounded-end-pill search-icon-btn" type="button">
                                 <i class="fi fi-br-search"></i>
                             </button>
@@ -40,21 +42,30 @@
                             <div v-else-if="searchResults.length === 0" class="no-results">
                                 Không tìm thấy kết quả
                             </div>
-                            <div v-else v-for="item in searchResults" :key="item.id" class="search-item">
-                                <div class="d-flex">
-                                    <div class="search-thumb-wrapper">
-                                        <img :src="item.thumbnail" class="search-thumb" :alt="item.name" 
-                                            @error="$event.target.src='https://placehold.co/100x100?text=vietceramics'" />
-                                    </div>
-                                    <div class="search-item-content">
-                                        <router-link :to="'/san-pham/' + item.id" class="product-name" @click="closeSearch">
-                                            {{ item.name }} - {{ item.itemCode }}
-                                        </router-link>
-                                        <div class="collection-name">
-                                            {{ item.collectionName }}
-                                        </div>
-                                    </div>
-                                </div>
+                            <div
+                              v-else
+                              v-for="item in searchResults"
+                              :key="item.id"
+                              class="search-item"
+                              role="button"
+                              tabindex="0"
+                              @click="goToProduct(item.id)"
+                              @keydown.enter.prevent="goToProduct(item.id)"
+                            >
+                              <div class="d-flex">
+                                  <div class="search-thumb-wrapper">
+                                      <img :src="item.thumbnail" class="search-thumb" :alt="item.name" 
+                                          @error="$event.target.src='https://placehold.co/100x100?text=vietceramics'" />
+                                  </div>
+                                  <div class="search-item-content">
+                                      <div class="product-name">
+                                          {{ item.name }} - {{ item.itemCode }}
+                                      </div>
+                                      <div class="collection-name">
+                                          {{ item.collectionName }}
+                                      </div>
+                                  </div>
+                              </div>
                             </div>
                         </div>
                     </div>
@@ -162,7 +173,8 @@
                         class="form-control rounded-start-pill" 
                         placeholder="Nhập mã sản phẩm..."
                         v-model="searchQuery" 
-                        @input="handleSearch">
+                        @input="handleSearch"
+                        @keydown.enter.prevent="handleEnterSearch">
                     <button class="btn btn-outline-light rounded-end-pill search-icon-btn" type="button">
                         <i class="fi fi-br-search"></i>
                     </button>
@@ -183,16 +195,25 @@
                     <div v-else-if="searchResults.length === 0" class="no-results">
                         Không tìm thấy kết quả
                     </div>
-                    <div v-else v-for="item in searchResults" :key="item.id" class="search-item">
+                    <div
+                      v-else
+                      v-for="item in searchResults"
+                      :key="item.id"
+                      class="search-item"
+                      role="button"
+                      tabindex="0"
+                      @click="goToProduct(item.id)"
+                      @keydown.enter.prevent="goToProduct(item.id)"
+                    >
                         <div class="d-flex">
                             <div class="search-thumb-wrapper">
                                 <img :src="item.thumbnail" class="search-thumb" :alt="item.name" 
                                     @error="$event.target.src='https://placehold.co/100x100?text=vietceramics'" />
                             </div>
                             <div class="search-item-content">
-                                <router-link :to="'/san-pham/' + item.id" class="product-name" @click="closeSearch">
+                                <div class="product-name">
                                     {{ item.name }} - {{ item.itemCode }}
-                                </router-link>
+                                </div>
                                 <div class="collection-name">
                                     {{ item.collectionName }}
                                 </div>
@@ -218,7 +239,8 @@ import { useToast } from 'vue-toastification'
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const apiBaseUrl = 'https://api.vietceramics.com/api'
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://api.vietceramics.com/api').replace(/\/$/, '')
+const authToken = (import.meta.env.VITE_PRICE_API_TOKEN || '').trim()
 const cdnBaseUrl = (import.meta.env.VITE_CDN_BASE_URL || 'http://toppstiles.com.vn/products-test/').trim()
 
 // State
@@ -306,7 +328,8 @@ const handleSearch = debounce(async () => {
                 keyword,
                 pageIndex: 1,
                 pageSize: 10
-            }
+            },
+            headers: authToken ? { Authorization: authToken } : {}
         })
         
         // Check if response.data.data is an array
@@ -345,6 +368,23 @@ const closeSearch = () => {
     showResults.value = false;
     searchQuery.value = '';
     searchResults.value = [];
+    showMobileSearch.value = false;
+    isSearching.value = false;
+}
+
+const goToProduct = (productId) => {
+    if (!productId) return
+    closeSearch()
+    router.push({ name: 'product-detail', params: { id: productId } }).catch(() => {})
+}
+
+const handleEnterSearch = () => {
+    const firstItem = searchResults.value[0];
+    if (firstItem && !isSearching.value) {
+        goToProduct(firstItem.id);
+    } else {
+        handleSearch();
+    }
 }
 
 // Debounce function
