@@ -59,7 +59,10 @@
             <div class="search-input-wrapper">
               <i class="fi fi-br-search search-icon"></i>
               <input type="text" class="form-control search-input" placeholder="Nhập mã sản phẩm..."
-                v-model="searchQuery" @input="handleSearch" />
+                v-model="searchQuery" @input="handleSearch"
+                @keydown.enter.prevent="handleEnterSearch"
+                @keydown.down.prevent="moveHighlight(1)"
+                @keydown.up.prevent="moveHighlight(-1)" />
             </div>
 
             <div class="search-results" v-if="showResults || isSearching">
@@ -70,11 +73,12 @@
               <div v-else-if="searchResults.length === 0" class="no-results">
                 Không tìm thấy kết quả
               </div>
-              <div v-else class="search-items">
+              <div v-else class="search-items" ref="homeSearchResults">
                 <div
-                  v-for="item in searchResults"
+                  v-for="(item, idx) in searchResults"
                   :key="item.id"
                   class="search-item"
+                  :class="{ active: highlightedIndex === idx }"
                   role="button"
                   tabindex="0"
                   @click="goToProduct(item.product_code)"
@@ -254,7 +258,7 @@ export default {
       return function executedFunction(...args) {
         const later = () => {
           clearTimeout(timeout)
-          func(...args)
+          func.apply(this, args)
         }
         clearTimeout(timeout)
         timeout = setTimeout(later, wait)
@@ -283,15 +287,18 @@ export default {
             collectionName: item.custom_field121 || item.product_category || item.custom_field68 || 'Chưa phân loại',
             thumbnail: "https://static.superstone.com.vn/products-test/hinh-gach/" + item.product_code + ".jpg"
           }))
+          this.highlightedIndex = this.searchResults.length ? 0 : -1
           this.showResults = true
         } else {
           this.searchResults = []
           this.showResults = false
+          this.highlightedIndex = -1
         }
       } catch (error) {
         console.error('Search error:', error)
         this.searchResults = []
         this.showResults = true
+        this.highlightedIndex = -1
       } finally {
         this.isSearching = false
       }
@@ -320,6 +327,40 @@ export default {
     goToProduct(productCode) {
       if (!productCode) return;
       this.$router.push({ name: 'product-detail', params: { id: productCode } });
+    },
+    handleEnterSearch() {
+      const firstItem = this.searchResults[0];
+      const highlighted = this.highlightedIndex >= 0 ? this.searchResults[this.highlightedIndex] : null;
+      const target = highlighted || firstItem;
+      if (target && !this.isSearching) {
+        this.goToProduct(target.product_code);
+      } else {
+        this.handleSearch();
+      }
+    },
+    moveHighlight(direction) {
+      if (!this.showResults || this.isSearching || !this.searchResults.length) return
+      const total = this.searchResults.length
+      const nextIndex = this.highlightedIndex === -1
+        ? 0
+        : (this.highlightedIndex + direction + total) % total
+      this.highlightedIndex = nextIndex
+      this.$nextTick(() => {
+        const container = this.$refs.homeSearchResults
+        const items = container?.querySelectorAll('.search-item')
+        const active = items && items[nextIndex]
+        if (active && container) {
+          const itemTop = active.offsetTop
+          const itemBottom = itemTop + active.offsetHeight
+          const viewTop = container.scrollTop
+          const viewBottom = viewTop + container.clientHeight
+          if (itemTop < viewTop) {
+            container.scrollTop = itemTop
+          } else if (itemBottom > viewBottom) {
+            container.scrollTop = itemBottom - container.clientHeight
+          }
+        }
+      })
     },
     handleLogout() {
       localStorage.removeItem('user')
@@ -617,6 +658,11 @@ export default {
 
 .search-item:hover {
   background-color: #f8f9fa;
+}
+
+.search-item.active {
+  background: #eef2ff;
+  border-left: 3px solid #971b1e;
 }
 
 .search-thumb-wrapper {

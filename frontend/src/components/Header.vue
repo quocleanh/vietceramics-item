@@ -21,6 +21,8 @@
                                 v-model="searchQuery" 
                                 @input="handleSearch"
                                 @keydown.enter.prevent="handleEnterSearch"
+                                @keydown.down.prevent="moveHighlight(1)"
+                                @keydown.up.prevent="moveHighlight(-1)"
                             >
                             <button class="btn btn-outline-light rounded-end-pill search-icon-btn" type="button">
                                 <i class="fi fi-br-search"></i>
@@ -44,9 +46,10 @@
                             </div>
                             <div
                               v-else
-                              v-for="item in searchResults"
+                              v-for="(item, idx) in searchResults"
                               :key="item.id"
                               class="search-item"
+                              :class="{ active: highlightedIndex === idx }"
                               role="button"
                               tabindex="0"
                               @click="goToProduct(item.id)"
@@ -174,7 +177,9 @@
                         placeholder="Nhập mã sản phẩm..."
                         v-model="searchQuery" 
                         @input="handleSearch"
-                        @keydown.enter.prevent="handleEnterSearch">
+                        @keydown.enter.prevent="handleEnterSearch"
+                        @keydown.down.prevent="moveHighlight(1)"
+                        @keydown.up.prevent="moveHighlight(-1)">
                     <button class="btn btn-outline-light rounded-end-pill search-icon-btn" type="button">
                         <i class="fi fi-br-search"></i>
                     </button>
@@ -197,9 +202,10 @@
                     </div>
                     <div
                       v-else
-                      v-for="item in searchResults"
+                      v-for="(item, idx) in searchResults"
                       :key="item.id"
                       class="search-item"
+                      :class="{ active: highlightedIndex === idx }"
                       role="button"
                       tabindex="0"
                       @click="goToProduct(item.id)"
@@ -251,6 +257,7 @@ const searchResults = ref([])
 const showResults = ref(false)
 const isSearching = ref(false)
 const showMobileSearch = ref(false)
+const highlightedIndex = ref(-1)
 
 // Computed
 const isHomePage = computed(() => route.name === 'home')
@@ -319,6 +326,7 @@ const handleSearch = debounce(async () => {
         if (!keyword.length) {
             searchResults.value = []
             showResults.value = false
+            highlightedIndex.value = -1
             return
         }
 
@@ -346,14 +354,16 @@ const handleSearch = debounce(async () => {
                     thumbnail: item.avatar || `${cdnBaseUrl}hinh-gach/${productId}.jpg`
                 }
             })
-            console.log('Transformed results:', searchResults.value)
+            highlightedIndex.value = 0
         } else {
             searchResults.value = []
+            highlightedIndex.value = -1
         }
         showResults.value = true
     } catch (error) {
         console.error('Search error:', error)
         searchResults.value = []
+        highlightedIndex.value = -1
         showResults.value = true
     } finally {
         isSearching.value = false
@@ -370,6 +380,7 @@ const closeSearch = () => {
     searchResults.value = [];
     showMobileSearch.value = false;
     isSearching.value = false;
+    highlightedIndex.value = -1;
 }
 
 const goToProduct = (productId) => {
@@ -380,11 +391,38 @@ const goToProduct = (productId) => {
 
 const handleEnterSearch = () => {
     const firstItem = searchResults.value[0];
-    if (firstItem && !isSearching.value) {
-        goToProduct(firstItem.id);
+    const highlighted = highlightedIndex.value >= 0 ? searchResults.value[highlightedIndex.value] : null;
+    const target = highlighted || firstItem;
+    if (target && !isSearching.value) {
+        goToProduct(target.id);
     } else {
         handleSearch();
     }
+}
+
+const moveHighlight = (direction) => {
+    if (!searchResults.value.length) return;
+    const total = searchResults.value.length;
+    const nextIndex = highlightedIndex.value === -1
+        ? 0
+        : (highlightedIndex.value + direction + total) % total;
+    highlightedIndex.value = nextIndex;
+    // đảm bảo item được hiển thị trong viewport kết quả
+    requestAnimationFrame(() => {
+        const container = document.querySelector('.search-results');
+        const itemEl = container?.querySelectorAll('.search-item')[nextIndex];
+        if (itemEl && container) {
+            const itemTop = itemEl.offsetTop;
+            const itemBottom = itemTop + itemEl.offsetHeight;
+            const viewTop = container.scrollTop;
+            const viewBottom = viewTop + container.clientHeight;
+            if (itemTop < viewTop) {
+                container.scrollTop = itemTop;
+            } else if (itemBottom > viewBottom) {
+                container.scrollTop = itemBottom - container.clientHeight;
+            }
+        }
+    });
 }
 
 // Debounce function
@@ -521,6 +559,11 @@ body {
 
 .search-item:hover {
     background-color: #f8f9fa;
+}
+
+.search-item.active {
+    background-color: #f1f3f4;
+    border-left: 3px solid #971b1e;
 }
 
 .search-thumb-wrapper {
