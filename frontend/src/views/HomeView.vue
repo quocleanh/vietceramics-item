@@ -601,7 +601,6 @@ export default {
   outline: none;
   box-shadow: 0 12px 36px rgba(12, 28, 46, 0.3);
 }
-
 .search-input::placeholder {
   color: rgba(255, 255, 255, 0.65);
 }
@@ -613,8 +612,11 @@ export default {
   transform: translateY(-50%);
   color: #fff;
   font-size: 18px;
+  transition: color 0.2s ease;
 }
-
+.search-input-wrapper:focus-within .search-icon {
+  color: #b00020;
+} 
 .search-results {
   position: absolute;
   top: 100%;
